@@ -261,7 +261,7 @@ function M(eta::ComplexF64,
             vp::AbstractMatrix{ComplexF64},
             vm::AbstractMatrix{ComplexF64})
     s = 0.0 + 0.0im
-    @inbounds for j in axes(w0,2), i in axes(w0,1)
+    @inbounds for j in axes(up,2), i in axes(up,1)
         up1 = up[i,j]
         vp1 = vp[i,j]
         um1 = um[i,j]
@@ -294,15 +294,41 @@ function v!(out::AbstractVector{ComplexF64},
     M_val = M(eta,eta_bar,up,um,vp,vm)
     dHdeta = dHde(eta,eta_bar,up,um,vp,vm, nx, ny, J1, J2, J3, K, B, boundary)
     dHd_eta_bar = dHde_bar(eta,eta_bar,up,um,vp,vm, nx, ny, J1, J2, J3, K, B, boundary)
-    """
-    The last line needs an explanation. H is symmetric under the exchange z <> w, and it follows that
-    dH/dlbar (w,z) = - dH/dl (z,w) where the minus sign appears because dw/dl and dz/dlbar are negative of one another.
-    The minus sign before lambda and lambda_bar arguments appears because of the relative minus sign in the definitions of w and z.
-    """
 
     @inbounds begin
         out[1] = -dHd_eta_bar / M_val
         out[2] =  dHdeta / M_val
     end
     return out
+end
+
+function solve_ivp!(sol::AbstractMatrix{ComplexF64},
+    u0::AbstractVector{ComplexF64},dt::Float64,N_steps::Int,
+    up::AbstractMatrix{ComplexF64},
+    um::AbstractMatrix{ComplexF64},
+    vp::AbstractMatrix{ComplexF64},
+    vm::AbstractMatrix{ComplexF64},
+    nx::Int, ny::Int,
+    J1::Float64, J2::Float64, J3::Float64, K::Float64,
+    B::AbstractMatrix{Float64},
+    boundary::BoundaryCondition)
+
+    u = zeros(ComplexF64,2)
+    u .= u0
+
+    @showprogress for step=1:N_steps
+        k1 = zeros(ComplexF64,2)
+        k2 = zeros(ComplexF64,2)
+        k3 = zeros(ComplexF64,2)
+        k4 = zeros(ComplexF64,2)
+
+        v!(k1,u[1],u[2],                 up,um,vp,vm,nx,ny,J1,J2,J3,K,B,boundary)
+        v!(k2,u[1]+k1[1]*dt/2,u[2]+k1[2]*dt/2, up,um,vp,vm,nx,ny,J1,J2,J3,K,B,boundary)
+        v!(k3,u[1]+k2[1]*dt/2,u[2]+k2[2]*dt/2,                 up,um,vp,vm,nx,ny,J1,J2,J3,K,B,boundary)
+        v!(k4,u[1]+k3[1]*dt,u[2]+k3[2]*dt,                 up,um,vp,vm,nx,ny,J1,J2,J3,K,B,boundary)
+
+        u += dt/6 * (k1 + 2*(k2+k3) + k4)
+
+        sol[:,step] = u
+    end        
 end

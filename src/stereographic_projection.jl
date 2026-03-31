@@ -20,7 +20,7 @@ function w_lambda(w0, lambda)
 end
 
 function n_lambda(w0, lambda)
-    return n_vector(w(w0,lambda))
+    return n_vector(w_lambda(w0,lambda))
 end
 
 function H(w::Array{ComplexF64,2}, z::Array{ComplexF64,2}, nx::Int, ny::Int, 
@@ -61,5 +61,34 @@ end
 function H_lambda(w0,lambda,lambda_bar,nx,ny,J1,J2,J3,K,B,boundary)
     w = real.(w0) + im*imag.(w0)*lambda
     z = real.(w0) - im*imag.(w0)*lambda_bar
+    return H(w,z,nx,ny,J1,J2,J3,K,B,boundary)
+end
+
+
+
+# eta coordinate
+
+
+function uv(n)
+    nx = n.size[2]; ny = n.size[3]
+    u = zeros(ComplexF64,nx,ny); v = similar(u)
+    for i=1:nx,j=1:ny
+        u[i,j] = sqrt((1+n[3,i,j])/2)
+        v[i,j] = (n[1,i,j] + im*n[2,i,j]) / sqrt(2*(1+n[3,i,j]))
+    end
+    return u,v
+end
+
+function w_eta(eta,up,vp,um,vm)
+    return (vp+eta*vm) ./ (up + eta*um)
+end
+
+function n_eta(eta,up,vp,um,vm)
+    return n_vector(w_eta(eta,up,vp,um,vm))
+end
+
+function H_eta(eta,eta_bar,up,vp,um,vm, nx,ny,J1,J2,J3,K,B,boundary)
+    w = (vp+eta*vm) ./ (up + eta*um)
+    z = (conj(vp) + eta_bar * conj(vm)) ./ (up + eta_bar * um) # u is real
     return H(w,z,nx,ny,J1,J2,J3,K,B,boundary)
 end
