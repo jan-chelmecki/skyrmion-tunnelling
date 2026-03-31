@@ -1,5 +1,3 @@
-import Plots : plot, quiver
-
 function gradient(f, dx, dy)
     nx, ny = size(f)
     dfdx = zeros(Float64, nx, ny)
@@ -26,6 +24,11 @@ function gradient(f, dx, dy)
     return dfdx, dfdy
 end
 
+function test_f()
+    P = plot([1,2,3],[4,6,5])
+    display(P)
+end
+
 function topological_charge(n)
     m_x, m_y, m_z = n[1, :, :], n[2, :, :], n[3, :, :]
 
@@ -49,6 +52,7 @@ function show_skyrmion(n)
     x0 = 1
     x1 = size(n, 2)
 
+    nx = n.size[2]; ny = n.size[3]
     # spin z
     Heatmap = heatmap(n[3, :, :]', clims=(-1, 1), color=:coolwarm, xlabel="x", ylabel="y",
             title="Out-of-plane magnetization", aspect_ratio=:1, grid=false,xlims=(1,nx),ylims=(1,ny))

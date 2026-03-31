@@ -212,3 +212,57 @@ function relax(n_init::Array{Float64,3}, nx::Int, ny::Int, J1::Float64, J2::Floa
     
     return n
 end
+
+
+# Field Configurations
+
+
+function ferromagnetic(nx,ny)
+    n = zeros(3,nx,ny)
+    n[3,:,:] .= 1.0
+    return n
+end
+
+function is_ferro(n; threshold=0.1)
+    n = n_final
+    d, nx, ny = n.size
+    difference = sum( sqrt.( sum( ( n-ferromagnetic(nx,ny) ).^2, dims=1 ) ) )
+    #difference *= 1/(nx*ny)
+    return (maximum(difference) < threshold)
+end
+
+function normalize!(n)
+    for i=1:n.size[2]
+        for j=1:n.size[3]
+            n[:,i,j] *= 1/sqrt(sum(n[:,i,j].^2))
+        end
+    end
+    return n
+end
+
+function check_norm(n)
+    norm = zeros(n.size[2],n.size[3])
+    for i=1:n.size[2]
+        for j=1:n.size[3]
+            norm[i,j] = sqrt(sum(n[:,i,j].^2))
+        end
+    end
+    println("Norm varies from ", minimum(norm), " to ", maximum(norm))
+end
+
+function random_configuration(nx,ny)
+    n = randn((3,nx,ny))
+    normalize!(n)
+    return n
+end
+
+function rotate_around_z(n, phi)
+    n_new = copy(n)
+    n_new[1,:,:] = cos(phi) * n[1,:,:] - sin(phi) * n[2,:,:]
+    n_new[2,:,:] = sin(phi) * n[1,:,:] + cos(phi) * n[2,:,:]
+    return n_new
+end
+
+function uniform_B(nx,ny,B_val)
+    return B_val*ones(nx,ny)
+end
