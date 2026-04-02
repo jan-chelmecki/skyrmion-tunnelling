@@ -79,15 +79,15 @@ function uv(n)
     return u,v
 end
 
-function w_eta(eta,up,vp,um,vm)
+function w_eta(eta,up,um,vp,vm)
     return (vp+eta*vm) ./ (up + eta*um)
 end
 
-function n_eta(eta,up,vp,um,vm)
-    return n_vector(w_eta(eta,up,vp,um,vm))
+function n_eta(eta,up,um,vp,vm)
+    return n_vector(w_eta(eta,up,um,vp,vm))
 end
 
-function H_eta(eta,eta_bar,up,vp,um,vm, nx,ny,J1,J2,J3,K,B,boundary)
+function H_eta(eta,eta_bar,up,um,vp,vm, nx,ny,J1,J2,J3,K,B,boundary)
     w = (vp+eta*vm) ./ (up + eta*um)
     z = (conj(vp) + eta_bar * conj(vm)) ./ (up + eta_bar * um) # u is real
     return H(w,z,nx,ny,J1,J2,J3,K,B,boundary)

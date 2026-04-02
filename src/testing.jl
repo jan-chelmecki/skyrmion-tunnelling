@@ -139,7 +139,7 @@ function test_eta_solver(up,um,vp,vm)
 
     boundary = PeriodicBoundary()
     solve_ivp!(sol,u0,dt,N_steps,up,um,vp,vm,nx,ny,J1,J2,J3,K,B,boundary)
-    H_vals = [H_eta(sol[1,step],sol[2,step],up,vp,um,vm, nx,ny,J1,J2,J3,K,B,boundary) for step=1:N_steps]
+    H_vals = [H_eta(sol[1,step],sol[2,step],up,um,vp,vm, nx,ny,J1,J2,J3,K,B,boundary) for step=1:N_steps]
     energy_diff = maximum(abs.(H_vals .- H_vals[1]))
     println("u0 = ",u0)
     println("energy_diff = ", energy_diff)
