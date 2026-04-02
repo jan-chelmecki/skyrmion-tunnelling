@@ -1,11 +1,32 @@
-neighbors(::SquareLattice, J1, J2, J3) =
-    ((1,0,J1), (0,1,J1), (1,1,J2), (1,-1,J2), (2,0,J3), (0,2,J3))
+struct SquareLattice <: LatticeType
+    nx::Int
+    ny::Int
+end
 
-neighbors(::TriangularLattice, J1, J2, J3) =
-    ((1,0,J1), (0,1,J1), (-1,1,J1),
-     (1,1,J2), (-1,2,J2), (2,-1,J2),
-     (2,0,J3), (0,2,J3), (-2,2,J3))
+struct TriangularLattice <: LatticeType
+    nx::Int
+    ny::Int
+end
 
-     
-#neighbors(::HoneycombLattice, J1, J2, J3) =
-#    ((1,0,J1), (0,1,J1), (-1,1,J1))
+"""
+This would be nicer but causes a type instability I cannot fix... (I opted for unaesthetic branch statements in the hot loops)
+
+
+@inline function foreach_neighbor(f, ::SquareLattice, J1, J2, J3)
+    f( 1,  0, J1)
+    f( 0,  1, J1)
+    f( 1,  1, J2)
+    f( 1, -1, J2)
+    f( 2,  0, J3)
+    f( 0,  2, J3)
+end
+
+@inline function foreach_neighbor(f, ::TriangularLattice, J1, J2, J3)
+    f(0,1,J1)
+    f(1,0,J1)
+    f(1,-1,J1)
+    f(-1,2,J2)
+    f(1,1,J2)
+    f(2,-1,J2)
+end
+"""
