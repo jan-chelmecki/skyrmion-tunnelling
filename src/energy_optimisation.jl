@@ -68,8 +68,8 @@ function pin_centre!(n; direction = [0.0,0.0,1.0])
     n[:,mx+1,my+1] .= direction
 end
     
-function relax(n_init::Array{Float64,3}, dt::Float64, N_steps::Int, params::HamiltonianParameters, lattice::LatticeType, boundary::BoundaryCondition;
-            graph::Bool=true,adaptive_dt::Bool=true,pin_edges::Bool=false,pin_centre::Bool=false)
+function relax(n_init::Array{Float64,3}, params::HamiltonianParameters, lattice::LatticeType, boundary::BoundaryCondition;
+            dt::Float64, N_steps::Int,graph::Bool=true,adaptive_dt::Bool=true,pin_edges::Bool=false,pin_centre::Bool=false)
     """
     Gradient descent on H
     """
@@ -108,10 +108,11 @@ function relax(n_init::Array{Float64,3}, dt::Float64, N_steps::Int, params::Hami
                 n .= n_trial
                 H_current = H_trial
                 accepted = true
+                local_dt *= 1.01
                 break
-            else
-                local_dt *= 0.9
-                print("Decreasing dt at t = $t, dt = $local_dt")
+            else 
+                local_dt *= 0.90
+                #print("Decreasing dt at t = $t, dt = $local_dt")
             end
         end
 
@@ -128,10 +129,11 @@ function relax(n_init::Array{Float64,3}, dt::Float64, N_steps::Int, params::Hami
 
     if graph
         P = plot(times,H_vals,label=false,xlabel="t")
-        xlabel!(P,"step")
+        xlabel!(P,"t")
         ylabel!(P,"energy")
         title!(P, "Energy during gradient descent")
         display(P)
+        println("t_max = $(t[end])")
     end
     
     return n

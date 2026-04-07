@@ -1,3 +1,4 @@
+# the proposed step in Metropolis-Hastings
 function small_rotation!(s::Vector{Float64}, r::Vector{Float64}, epsilon::Float64)
     # r in the axis; it does not need to be normalized
     rs = r[1]*s[1] + r[2]*s[2] + r[3]*s[3]
@@ -13,6 +14,39 @@ function small_rotation!(s::Vector{Float64}, r::Vector{Float64}, epsilon::Float6
         s[i] *= inv_norm
     end
 end
+
+"""
+function local_h_field!(h::Vector{Float64}, n::Array{Float64, 3}, params::HamiltonianParameters, lattice::LatticeType, boundary::BoundaryCondition, i::Int, j::Int)
+    J1 = params.J1; J2 = params.J2; J3 = params.J3
+    K  = params.K; B  = params.B
+    h .= 0.0
+    # external field
+    g[3,i,j] += B[i,j]
+    # anisotropy
+    g[3,i,j] += 2*K*n[3,i,j]
+
+    if lattice isa SquareLattice
+
+        for (di, dj, J) in ((1,0,J1),(-1,0,J1),(0,1,J1),(0,-1,J1),(1,1,J2),(-1,-1,J2),(1,-1,J2),(-1,1,J2),(2,0,J3),(-2,0,J3),(0,2,J3),(0,-2,J3))
+            kk, ll, valid_neighbour = map_index(i + di, j + dj, nx, ny, boundary)
+            if valid_neighbour # valid neighbour
+                g[:,i,j] .+= J * n[:,kk,ll]
+                g[:,kk,ll] .+= J * n[:,i,j]
+            end
+        end
+    elseif lattice isa TriangularLattice
+
+        for (di, dj, J) in ((0,1,J1),(0,-1,J1),(1,0,J1),(-1,0,J1),(1,-1,J1),(-1,1,J1), (-1,2,J2),(1,-2,J2),(1,1,J2),(-1,-1,J2),(2,-1,J2),(-2,1,J2))
+            kk, ll, valid_neighbour = map_index(i + di, j + dj, nx, ny, boundary)
+            if valid_neighbour # valid neighbour
+                g[:,i,j] .+= J * n[:,kk,ll]
+                g[:,kk,ll] .+= J * n[:,i,j]
+            end
+        end
+    end
+end
+"""
+
 
 function shuffle_sites!(sites::Matrix{Int})
     N = size(sites,2)
