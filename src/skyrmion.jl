@@ -50,7 +50,21 @@ function mean_field_skyrmion(nx,ny,J1,J2,J3,K,B;b=1.7,show=true)
     return n
 end
 
+function skyrmion_ansatz(lattice::LatticeType; radius = 3.0, relax_length = 2.0)
+    X,Y = XY_meshgrid(lattice)
+    R = sqrt.(X.^2 .+ Y.^2)
+    theta = pi .- 2 .* atan.(R .* exp.((R .- radius) ./ relax_length))
 
+    # compute the vector coordinates
+    n = zeros(Float64, 3, lattice.nx, lattice.ny)
+    n[1, :, :] .= sin.(theta) .* X ./ R
+    n[2, :, :] .= sin.(theta) .* Y ./ R
+    n[3, :, :] .= cos.(theta)
+    return n
+end
+
+
+# ----- old
 function gradient(f, dx, dy)
     nx, ny = size(f)
     dfdx = zeros(Float64, nx, ny)

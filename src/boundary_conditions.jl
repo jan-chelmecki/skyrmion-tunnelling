@@ -7,5 +7,22 @@
 end
 
 @inline function map_index(k, l, nx, ny, ::PeriodicBoundary)
-    return mod1(k, nx), mod1(l, ny), true
+    # I write long branch statements because they should be faster than return mod1(k, nx), mod1(l, ny)
+    if k<1
+        kk = k + nx
+    elseif k>nx
+        kk = k-nx
+    else
+        kk = k
+    end
+
+    if l<1
+        ll = l+ny
+    elseif l>ny
+        ll = l-ny
+    else
+        ll = l
+    end
+
+    return kk, ll, true
 end

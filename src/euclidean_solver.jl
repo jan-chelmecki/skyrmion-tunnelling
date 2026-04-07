@@ -114,7 +114,6 @@ end
 
 function solve_ivp!(sol::AbstractMatrix{ComplexF64},
                     u0::AbstractVector{ComplexF64},dt::Float64,N_steps::Int,
-                    nx::Int, ny::Int,
                     params::HamiltonianParameters, lattice::LatticeType, boundary::BoundaryCondition, coord::CollectiveCoordinate)
     
     nx = lattice.nx 

@@ -46,3 +46,18 @@ end
 
     return w, z, dw, dz
 end
+
+# a friendlier function for outputs and graphics
+function wz(x,y,lattice::LatticeType,coord::CollectiveCoordinate)
+    nx = lattice.nx
+    ny = lattice.ny
+    X = ComplexF64(x); Y = ComplexF64(y)
+    w = zeros(ComplexF64,nx,ny)
+    z = zeros(ComplexF64,nx,ny)
+    for j=1:ny,i=1:nx
+        w1,z1,dw1,dw2 = compute_wz_fields(coord,i,j,X,Y)
+        w[i,j] = w1
+        z[i,j] = z1
+    end
+    return w, z
+end

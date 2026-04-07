@@ -3,20 +3,22 @@ module SkyrmionTunneling
 using Plots
 using ProgressMeter
 using LaTeXStrings
+using Random
 
 include("types.jl")
 include("neighbours.jl")
 include("boundary_conditions.jl")
 include("hamiltonian_parameters.jl")
-include("energy_landscape.jl")
+include("monte_carlo.jl")
+
+include("fields.jl")
+include("energy_functional.jl")
+include("energy_optimisation.jl")
 include("skyrmion.jl")
 include("visualize.jl")
 
 include("collective_coordinates.jl")
-include("stereographic_projection.jl")
 include("euclidean_solver.jl")
-#include("lambda_solver.jl")
-#include("eta_solver.jl")
 include("testing.jl")
 
 export BoundaryCondition

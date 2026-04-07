@@ -22,3 +22,32 @@ function show_skyrmion(n)
     quiver!(quiver_plot,X,Y, quiver=(n[1,:,:],n[2,:,:]), xlabel="x", ylabel="y", aspect_ratio=:equal,xlims=(1,nx),ylims=(1,ny),color="gray")
     display(quiver_plot)
 end
+
+function show_nz(n,lattice::LatticeType)
+    X,Y = XY_meshgrid(lattice)
+    nz = n[3,:,:] 
+    scatter(X,Y,marker_z = nz,label=false,aspect_ratio=:equal,c=:balance,colorbar_title=L"$n_z$", xlabel="x", ylabel="y",xlims=(minimum(X),maximum(X)))
+end
+
+function in_plane_quiver(n,lattice::LatticeType)
+    X,Y = XY_meshgrid(lattice)
+    quiver(X,Y,quiver=(n[1,:,:],n[2,:,:]), xlabel="x", ylabel="y", aspect_ratio=:equal,color="gray") #xlims=(minimum(X),maximum(X)))
+end
+
+function three_dee_quiver(n,lattice::LatticeType)
+        X,Y = XY_meshgrid(lattice)
+        Z  = zeros(X.size)
+        lim = min(maximum(Y),5)
+        x, y, z = vec(X), vec(Y), vec(Z)
+        u, v, w = vec(n[1,:,:]),vec(n[2,:,:]),vec(n[3,:,:])
+        scale = 1.4
+        quiver(x,y,z, quiver= (u/scale,v/scale,w/scale) , 
+                xlims = (-lim, lim),
+                ylims = (-lim, lim),
+                zlims = (-lim, lim),
+                camera = (37,30), # (azimuth, elevation)
+                size=(900,600),
+                margin = 2Plots.mm,
+                xlabel="x", ylabel="y", aspect_ratio=:equal,
+                title="View near the centre of the lattice")
+end

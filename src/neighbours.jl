@@ -9,9 +9,8 @@ struct TriangularLattice <: LatticeType
 end
 
 """
-This would be nicer but causes a type instability I cannot fix... (I opted for unaesthetic branch statements in the hot loops)
-
-
+WARNING
+This causes a type instability I cannot fix... (hence I opted for unaesthetic branch statements in the hot loops)
 @inline function foreach_neighbor(f, ::SquareLattice, J1, J2, J3)
     f( 1,  0, J1)
     f( 0,  1, J1)

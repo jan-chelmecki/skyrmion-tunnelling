@@ -1,68 +1,105 @@
-function print_test()
-    println("Hello!")
+# helper functions and expressions for generating testing setups
+
+@inline supported_lattice_types = (SquareLattice, TriangularLattice)
+@inline supported_boundary = (FreeBoundary(), PeriodicBoundary())
+
+@inline function random_uniform(a,b)
+    return a + (b-a) * rand()
 end
 
-function print_test_4()
-    println("Update read automatically, 4, meeee!!")
+@inline function random_latice(lattice_geometry::DataType)
+    nx,ny = rand(7:15, 2)
+    return lattice_geometry(nx,ny)::LatticeType
 end
 
-function plot_test()
-    plot([1,2,3],[5,6,4])
+function random_params(lattice::LatticeType)
+    J1 = 1.0
+    J2 = - random_uniform(0.2, 0.6)
+    J3 = - random_uniform(0.05, 0.20)
+    K = random_uniform(-0.1, 0.3)
+    B_val = random_uniform(0.0, 0.6)
+    B = uniform_B(B_val, lattice)
+    return HamiltonianParameters(J1,J2,J3,K,B)
 end
 
-function test_energy()
-    let
-        nx = 10; ny = 7
-        J1 = 1.12; J2 = -122.521; J3 = 1/16*(-J1+4*J2)+0.23; K = 0.007
-        B = uniform_B(nx,ny,-0.123)
-        boundary = PeriodicBoundary()
-        E_FM = H_vect(ferromagnetic(nx,ny), J1, J2, J3, K, B, boundary)
-        if abs(E_FM) < 1e-10
-            println("correct FM energy ------> OK")
+@inline supported_lattice_types = (SquareLattice, TriangularLattice)
+@inline testing_boundary = (FreeBoundary(), PeriodicBoundary())
+@inline testing_lattice = [random_latice(type) for type in supported_lattice_types]
+
+function raise_error(err,params,lattice,boundary)
+    println("\nERROR -------------------------------------> \n ------------> occured for \n", lattice, "\n", boundary)
+    display_parameters(params)
+    println("err = ", abs(err), "\n")
+end
+
+const epsilon = 1e-10 # numerical error tolerance
+
+
+# ---- Testing routines ---------------------------------------------------------------
+
+function test_energy_functional()
+
+    # compute the energy of a ferromagnetic config ---> with my gauge, it should be 0
+    valid = true
+    for lattice in testing_lattice, boundary in testing_boundary
+        params = random_params(lattice)
+        E_FM = H(ferromagnetic(lattice), params, lattice, boundary)
+        err = abs(E_FM)
+        if err > epsilon
+            valid = false
+            raise_error(err,params,lattice,boundary)
+            println("E_ferromagnetic != 0")
         end
     end
+    if valid
+        println("E_ferromagnetic = 0 -------> OK")
+    end
 
-    let
-        nx = 5; ny = 6
-        J1 = 1.12; J2 = -0.521; J3 = 1/16*(-J1+4*J2)+0.23; K = 0.007
-        B = uniform_B(nx,ny,0.12)
-        boundary = FreeBoundary()
-        err = 0.0
-        for case=1:30
-            n = random_configuration(nx,ny)
-            H = H_vect(n, J1, J2, J3, K, B, boundary)
-            n_new = rotate_around_z(n,2pi*rand())
-            H_new = H_vect(n_new, J1, J2, J3, K, B, boundary)
-            diff = abs(H-H_new)
-            if (diff>err) err = diff end
+    # check Sz invariance
+    valid = true
+    for lattice in testing_lattice, boundary in testing_boundary
+        params = random_params(lattice)
+
+        n1 = random_configuration(lattice)
+        n2 = rotate_around_z(n1, 2pi*rand())
+
+        H1 = H(n1,params,lattice,boundary)
+        H2 = H(n2,params,lattice,boundary)
+
+        err = abs(H1-H2)
+        if err > epsilon
+            valid = false
+            raise_error(err,params,lattice,boundary)
+            println("H is not Sz invariant")
         end
-        println("err = ", err)
-        if err<1e-10
-            println("S_z invariance ------> test passed")
+    end
+    if valid
+        println("\nH is Sz invariant -------> OK")
+    end
+
+    # check if H_vector and H_stereographic are consistent
+    valid = true
+    for lattice in testing_lattice, boundary in testing_boundary
+        params = random_params(lattice)
+
+        n = random_configuration(lattice)
+        w = w_project(n)
+
+        H1 = H(n,params,lattice,boundary)
+        H2 = H(w,conj(w),params,lattice,boundary)
+
+        err = abs(H1-H2)
+        if err > epsilon
+            valid = false
+            raise_error(err,params,lattice,boundary)
+            println("H vector and H stereographic are NOT consistent")
         end
+    end
+    if valid
+        println("\nH vector and H stereographic consistent -------> OK")
     end
 end
 
-function test_projection()
-    let
-        nx = 27; ny = 20
-        J1 = 1.0; J2 = -1.23231; J3 = -0.1232; K = 0.001012
-        B = uniform_B(nx,ny,2.432)
-        boundary = FreeBoundary()
-        err = 0.0
-        for trial=1:30
-            n = random_configuration(nx,ny)
-            H1 = H_vect(n,J1,J2,J3,K,B,boundary)
-            w = w_project(n)
-            H2 = H(w,conj(w),nx,ny,J1,J2,J3,K,B,boundary)
-            err += abs(H1-H2)
-        end
-        println("err = ",err)
-        if err<1e-10
-            print("H consistent -----> OK")
-        end
-    end
-end
 
 function test_lambda_solver(w0)
     nx,ny = w0.size
