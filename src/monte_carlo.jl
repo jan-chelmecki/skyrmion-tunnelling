@@ -65,7 +65,8 @@ function shuffle_sites!(sites::Matrix{Int})
 end
 
 function anneal!(n::Array{Float64, 3}, params::HamiltonianParameters, lattice::LatticeType, boundary::BoundaryCondition; 
-    T0::Float64 = 5.0, alpha::Float64 = 0.98, steps_per_T::Int = 1000, epsilon::Float64 = 0.2, max_iterations::Int = 10000, T_minimal::Float64 = 1e-4, printing::Bool=false)
+    T0::Float64 = 5.0, alpha::Float64 = 0.98, steps_per_T::Int = 1000, epsilon::Float64 = 0.2, max_iterations::Int = 10000, T_minimal::Float64 = 1e-4, printing::Bool=false,
+    zero_temperature::Bool = false)
 
     nx = lattice.nx; ny = lattice.ny
     N = nx*ny
@@ -134,7 +135,12 @@ function anneal!(n::Array{Float64, 3}, params::HamiltonianParameters, lattice::L
             dE += -K* (s2[3]*s2[3] - s1[3]*s1[3])
 
             # decide whether to perform a Metropolis step
-            if rand() < min(1, exp(-dE/T))
+            if zero_temperature
+                prob = (dE<0) ? 1.0 : 0.0
+            else
+                prob = min(1, exp(-dE/T))
+            end
+            if rand() < prob
                 accepted += 1
                 n[:,i,j] .= s2
             end
@@ -161,6 +167,6 @@ function anneal!(n::Array{Float64, 3}, params::HamiltonianParameters, lattice::L
         loop_count += 1
     end
     if loop_count >= max_iterations
-        println("Monte Carlo has timed out")
+        println("Monte Carlo has timed out ")
     end
 end

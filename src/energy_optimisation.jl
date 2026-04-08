@@ -80,18 +80,16 @@ function relax(n_init::Array{Float64,3}, params::HamiltonianParameters, lattice:
     H_current = H(n,params,lattice,boundary)
     H_vals = zeros(Float64,N_steps)
 
-    local_dt = dt
     times = zeros(N_steps)
     t = 0.0
     @showprogress for step in 1:N_steps
 
         compute_descent_gradient!(g, n, params, lattice, boundary)
 
-        #local_dt = dt
         accepted = false
 
-        for attempt in 1:(adaptive_dt ? 12 : 1)
-            n_trial .= n .+ local_dt .* g
+        while dt > 1e-12
+            n_trial .= n .+ dt .* g
             normalize!(n_trial)
 
             #if pin_centre && step<300
@@ -108,23 +106,26 @@ function relax(n_init::Array{Float64,3}, params::HamiltonianParameters, lattice:
                 n .= n_trial
                 H_current = H_trial
                 accepted = true
-                local_dt *= 1.01
+                dt *= 1.01
                 break
             else 
-                local_dt *= 0.90
-                #print("Decreasing dt at t = $t, dt = $local_dt")
+                dt *= 0.90
             end
         end
 
         if !accepted
-            # could not find improving step; stop early
-            println("could not find improving step; stopped early")
+            # could not find an improving step; stop early
+            println("could not find an improving step; stopped early")
+            # fill in the outputs for a nicer display
+            H_vals[step:1:end] .= H_current
+            times[step:1:end] .= t
             break
         end
 
         H_vals[step] = H_current
         t += dt
         times[step] = t
+        
     end
 
     if graph

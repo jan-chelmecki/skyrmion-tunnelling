@@ -1,3 +1,38 @@
+function topological_charge(n::Array{Float64, 3}, lattice::LatticeType)
+    nx = lattice.nx; ny = lattice.ny
+    # compute the derivatives IN LATTICE DIRECTIONS u and v
+    dn_du = diff(n[:,:,1:1:end-1],dims=2)
+    dn_dv = diff(n[:,1:1:end-1,:],dims=3)
+
+    # change basis to PHYSICAL DIRECTIONS
+    """
+    In the case of the triangular lattice, the lattice VECTORS are
+    vec{u} = vec{x}
+    vec{v} = 1/2 * ( vec{x} + sqrt(3) vec{y} )
+    so the COORDINATES transform dually as
+    u = x - y/sqrt(3)
+    v = 2/sqrt(3) y
+    We then use the chain rule to express derivatives w.r to x and y in terms of those w.r to u and v.
+    """
+    dn_dx = similar(dn_du); dn_dy = similar(dn_dv)
+    if lattice isa SquareLattice
+        dn_dx .= dn_du
+        dn_dy .= dn_dv
+        unit_vol = 1.0
+    elseif lattice isa TriangularLattice
+        dn_dx .= dn_du
+        dn_dy .= inv(sqrt(3)) * (-dn_du + 2*dn_dv)
+        unit_vol = sqrt(3)/2
+    end
+
+    Q_density = zeros(Float64, nx-1, ny-1)
+    # employ the discretized formula
+    for i=1:3
+        Q_density += 1/(4*pi) * unit_vol * n[i,1:1:end-1,1:1:end-1] .* ( dn_dx[mod1(i+1,3),:,:] .* dn_dy[mod1(i+2,3),:,:] .- dn_dx[mod1(i+2,3),:,:] .* dn_dy[mod1(i+1,3),:,:] )
+    end
+    return sum(Q_density), Q_density
+end
+
 function mean_field_skyrmion(nx,ny,J1,J2,J3,K,B;b=1.7,show=true)
     """
     To remove and replace later, ideally.
@@ -63,7 +98,7 @@ function skyrmion_ansatz(lattice::LatticeType; radius = 3.0, relax_length = 2.0)
     return n
 end
 
-
+"""
 # ----- old
 function gradient(f, dx, dy)
     nx, ny = size(f)
@@ -109,3 +144,4 @@ function topological_charge(n)
 
     return Q, density
 end
+"""

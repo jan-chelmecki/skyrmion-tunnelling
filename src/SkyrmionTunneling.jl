@@ -3,7 +3,6 @@ module SkyrmionTunneling
 using Plots
 using ProgressMeter
 using LaTeXStrings
-using Random
 
 include("types.jl")
 include("neighbours.jl")
