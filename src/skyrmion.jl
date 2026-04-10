@@ -1,4 +1,7 @@
 function topological_charge(n::Array{Float64, 3}, lattice::LatticeType)
+    """
+    WARNING -----> DOES NOT TAKE ACCOUNT OF THE BOUNDARY CONDITIONS
+    """
     nx = lattice.nx; ny = lattice.ny
     # compute the derivatives IN LATTICE DIRECTIONS u and v
     dn_du = diff(n[:,:,1:1:end-1],dims=2)

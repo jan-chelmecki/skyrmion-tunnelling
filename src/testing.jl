@@ -12,12 +12,12 @@ end
     return lattice_geometry(nx,ny)::LatticeType
 end
 
-function random_params(lattice::LatticeType)
+function random_params(lattice::LatticeType; B_max = 0.6)
     J1 = 1.0
     J2 = - random_uniform(0.2, 0.6)
     J3 = - random_uniform(0.05, 0.20)
-    K = random_uniform(-0.1, 0.3)
-    B_val = random_uniform(0.0, 0.6)
+    K = random_uniform(-0.1, 0.4)
+    B_val = random_uniform(0.0, B_max)
     B = uniform_B(B_val, lattice)
     return HamiltonianParameters(J1,J2,J3,K,B)
 end
@@ -100,6 +100,9 @@ function test_energy_functional()
     end
 end
 
+function test_euclidean_solver()
+    return 0
+end
 
 function test_lambda_solver(w0)
     nx,ny = w0.size

@@ -1,3 +1,7 @@
+"""
+annealing in the frustrated magnetic system
+"""
+
 # the proposed step in Metropolis-Hastings
 function small_rotation!(s::Vector{Float64}, r::Vector{Float64}, epsilon::Float64)
     # r in the axis; it does not need to be normalized

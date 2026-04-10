@@ -1,3 +1,7 @@
+"""
+All functions that calculate the energy.
+"""
+
 # a helper function used for gauging the energy value
 function FM_energy(params::HamiltonianParameters, lattice::LatticeType, boundary::BoundaryCondition)
     nx = lattice.nx; ny = lattice.ny
@@ -119,5 +123,5 @@ end
 
 function H(x,y,params::HamiltonianParameters, lattice::LatticeType, boundary::BoundaryCondition, coord::CollectiveCoordinate)
     w, z = wz(x,y,lattice,coord)
-    return H(w,z,params,lattice,coord)
+    return H(w,z,params,lattice,boundary)
 end

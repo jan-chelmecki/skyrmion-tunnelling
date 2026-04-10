@@ -61,3 +61,8 @@ function wz(x,y,lattice::LatticeType,coord::CollectiveCoordinate)
     end
     return w, z
 end
+
+function n(x,lattice::LatticeType,coord::CollectiveCoordinate)
+    w,z = wz(x, conj(x), lattice, coord)
+    return n_vector(w)
+end

@@ -1,3 +1,10 @@
+"""
+Solver for the Euclidean time dynamics restricted to a collective coordinate manifold
+    - velocity fields
+    - RK4 solver for initial value problems
+"""
+
+
 function H_grad(x::ComplexF64, y::ComplexF64,
                 w::AbstractMatrix{ComplexF64},z::AbstractMatrix{ComplexF64},dw::AbstractMatrix{ComplexF64},dz::AbstractMatrix{ComplexF64},
                 params::HamiltonianParameters, lattice::L, boundary::BCs) where {L<:LatticeType, BCs<:BoundaryCondition}
@@ -134,10 +141,10 @@ function solve_ivp!(sol::AbstractMatrix{ComplexF64},
 
     @showprogress for step=1:N_steps
 
-        v!(k1,u[1],u[2],                 w,z,dw,dz,J1,J2,J3,K,B,boundary)
-        v!(k2,u[1]+k1[1]*dt/2,u[2]+k1[2]*dt/2, w,z,dw,dz,J1,J2,J3,K,B,boundary)
-        v!(k3,u[1]+k2[1]*dt/2,u[2]+k2[2]*dt/2,  w,z,dw,dz,J1,J2,J3,K,B,boundary)
-        v!(k4,u[1]+k3[1]*dt,u[2]+k3[2]*dt,      w,z,dw,dz,J1,J2,J3,K,B,boundary)
+        v!(k1,u[1],u[2],                 w,z,dw,dz, params,lattice,boundary,coord)
+        v!(k2,u[1]+k1[1]*dt/2,u[2]+k1[2]*dt/2, w,z,dw,dz, params,lattice,boundary,coord)
+        v!(k3,u[1]+k2[1]*dt/2,u[2]+k2[2]*dt/2,  w,z,dw,dz, params,lattice,boundary,coord)
+        v!(k4,u[1]+k3[1]*dt,u[2]+k3[2]*dt,      w,z,dw,dz, params,lattice,boundary,coord)
 
         @inbounds begin
             du1 = dt/6 * (k1[1] + 2*(k2[1] + k3[1]) + k4[1])
@@ -149,6 +156,9 @@ function solve_ivp!(sol::AbstractMatrix{ComplexF64},
 
             u[1] += du1
             u[2] += du2
+
+            sol[1,step] = u[1]
+            sol[2,step] = u[2]
         end
     end        
 end
@@ -174,6 +184,17 @@ function v(x,y,params::HamiltonianParameters,lattice::LatticeType,boundary::Boun
     v!(out,ComplexF64(x),ComplexF64(y), w,z,dw,dz, params,lattice,boundary,coord)
     return out
 end
+
+function solve_ivp(params::HamiltonianParameters, lattice::LatticeType, boundary::BoundaryCondition, coord::CollectiveCoordinate; 
+                dt::Float64, T, x0)
+    u0 = zeros(ComplexF64,2)
+    u0 .= x0
+    N_steps = Int(round(T/dt))
+    sol = zeros(ComplexF64,2,N_steps)
+    solve_ivp!(sol,u0,dt,N_steps,params,lattice,boundary,coord)
+    return sol
+end
+
 """
 function M(x::ComplexF64,
             y::ComplexF64,

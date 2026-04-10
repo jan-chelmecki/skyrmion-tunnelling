@@ -1,3 +1,7 @@
+"""
+Overdamped LLG dynamics for energy minimization
+"""
+
 function compute_descent_gradient!(g::Array{Float64,3}, n::Array{Float64,3}, params::HamiltonianParameters, lattice::LatticeType, boundary::BoundaryCondition)
     nx = lattice.nx; ny = lattice.ny
     J1 = params.J1; J2 = params.J2; J3 = params.J3
@@ -39,7 +43,7 @@ function compute_descent_gradient!(g::Array{Float64,3}, n::Array{Float64,3}, par
         g[:,i,j] .-= gn * n[:,i,j]
     end
 end
-
+"""
 function pin_boundary!(n::Array{Float64,3}; direction = [0.0,0.0,1.0])
     nx = n.size[2]
     ny = n.size[3]
@@ -67,9 +71,9 @@ function pin_centre!(n; direction = [0.0,0.0,1.0])
     n[:,mx,my+1] .= direction
     n[:,mx+1,my+1] .= direction
 end
-    
+"""    
 function relax(n_init::Array{Float64,3}, params::HamiltonianParameters, lattice::LatticeType, boundary::BoundaryCondition;
-            dt::Float64, N_steps::Int,graph::Bool=true,adaptive_dt::Bool=true,pin_edges::Bool=false,pin_centre::Bool=false)
+            dt::Float64, N_steps::Int,graph::Bool=true,adaptive_dt::Bool=true)
     """
     Gradient descent on H
     """
@@ -95,11 +99,11 @@ function relax(n_init::Array{Float64,3}, params::HamiltonianParameters, lattice:
             #if pin_centre && step<300
             #    pin_centre!(n_trial)
             #end
-
+            """
             if pin_edges && boundary == FreeBoundary()
                 pin_boundary!(n_trial)
             end
-
+            """
             H_trial = H(n_trial,params,lattice,boundary)
 
             if !adaptive_dt || H_trial <= H_current
