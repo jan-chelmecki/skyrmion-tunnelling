@@ -1,6 +1,7 @@
 # Simple manipulations on fields + basic field configurations
 
 function XY_meshgrid(lattice::LatticeType)
+    
     nx = lattice.nx
     ny = lattice.ny
 

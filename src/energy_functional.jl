@@ -3,10 +3,9 @@ All functions that calculate the energy.
 """
 
 # a helper function used for gauging the energy value
-function FM_energy(params::HamiltonianParameters, lattice::LatticeType, boundary::BoundaryCondition)
-    nx = lattice.nx; ny = lattice.ny
-    J1 = params.J1; J2 = params.J2; J3 = params.J3
-    K  = params.K; B  = params.B
+@inline function FM_energy(system::System)
+
+    @unpack_system system
 
     if lattice isa SquareLattice && boundary == FreeBoundary()
         E = -(J1 * (2 * nx * ny - (nx + ny)) + J2 * (2 * nx * ny - 2 * (nx + ny) + 2) 
@@ -24,13 +23,12 @@ function FM_energy(params::HamiltonianParameters, lattice::LatticeType, boundary
 end
 
 # energy of a field configuration given in terms of vectors
-function H(n::Array{Float64, 3}, params::HamiltonianParameters, lattice::LatticeType, boundary::BoundaryCondition)
+function H(n::Array{Float64, 3}, system::System)
     """
     Computes the energy of a classical magnetization field
     """
-    nx = lattice.nx; ny = lattice.ny
-    J1 = params.J1; J2 = params.J2; J3 = params.J3
-    K  = params.K; B  = params.B
+    
+    @unpack_system system
 
     E = 0.0
     for j=1:ny, i=1:nx
@@ -64,21 +62,15 @@ function H(n::Array{Float64, 3}, params::HamiltonianParameters, lattice::Lattice
         E -= ( K*na3*na3 + B[i,j]*na3)
     end
     # subtract the energy of the FM state
-    E -= FM_energy(params,lattice,boundary)
+    E -= FM_energy(system)
 
     return E
 end
 
 # energy but in stereographic coordinates ----> not optimized maximally, since it's rarely used (pretty optimal, though)
-function H(w::Array{ComplexF64,2}, z::Array{ComplexF64,2}, params::HamiltonianParameters, lattice::LatticeType, boundary::BoundaryCondition)
-    nx = lattice.nx
-    ny = lattice.ny
-
-    J1 = params.J1
-    J2 = params.J2
-    J3 = params.J3
-    K  = params.K
-    B  = params.B
+function H(w::Array{ComplexF64,2}, z::Array{ComplexF64,2}, system::System)
+    
+    @unpack_system system
 
     E = 0.0 
     # sum over bonds
@@ -115,13 +107,14 @@ function H(w::Array{ComplexF64,2}, z::Array{ComplexF64,2}, params::HamiltonianPa
         n_z = (1 - w1 * z1) / (1 + w1 * z1)
         E += -B[i, j] * n_z - K * n_z^2
     end
-    E = E - FM_energy(params,lattice,boundary)
+    E = E - FM_energy(system)
     return E
 end
 
 # a friendlier proxy for plotting, collective coordinates analysis etc.
 
-function H(x,y,params::HamiltonianParameters, lattice::LatticeType, boundary::BoundaryCondition, coord::CollectiveCoordinate)
+function H(x,y, system::System, coord::CollectiveCoordinate)
+    @unpack_system system
     w, z = wz(x,y,lattice,coord)
-    return H(w,z,params,lattice,boundary)
+    return H(w,z,system)
 end

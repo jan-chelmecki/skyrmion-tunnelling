@@ -2,10 +2,9 @@
 Overdamped LLG dynamics for energy minimization
 """
 
-function compute_descent_gradient!(g::Array{Float64,3}, n::Array{Float64,3}, params::HamiltonianParameters, lattice::LatticeType, boundary::BoundaryCondition)
-    nx = lattice.nx; ny = lattice.ny
-    J1 = params.J1; J2 = params.J2; J3 = params.J3
-    K  = params.K; B  = params.B
+function compute_descent_gradient!(g::Array{Float64,3}, n::Array{Float64,3}, system::System)
+    
+    @unpack_system system
     
     g .= 0.0 # the gradient
     @inbounds for j=1:ny, i=1:nx
@@ -72,23 +71,26 @@ function pin_centre!(n; direction = [0.0,0.0,1.0])
     n[:,mx+1,my+1] .= direction
 end
 """    
-function relax(n_init::Array{Float64,3}, params::HamiltonianParameters, lattice::LatticeType, boundary::BoundaryCondition;
+function relax(n_init::Array{Float64,3}, system::System;
             dt::Float64, N_steps::Int,graph::Bool=true,adaptive_dt::Bool=true)
     """
     Gradient descent on H
     """
+    println("Launching LLG relaxation for")
+    describe_system(system)
+
     g = zeros(size(n_init))
     n = copy(n_init)
     n_trial = similar(n)
 
-    H_current = H(n,params,lattice,boundary)
+    H_current = H(n,system)
     H_vals = zeros(Float64,N_steps)
 
     times = zeros(N_steps)
     t = 0.0
     @showprogress for step in 1:N_steps
 
-        compute_descent_gradient!(g, n, params, lattice, boundary)
+        compute_descent_gradient!(g, n, system)
 
         accepted = false
 
@@ -99,12 +101,12 @@ function relax(n_init::Array{Float64,3}, params::HamiltonianParameters, lattice:
             #if pin_centre && step<300
             #    pin_centre!(n_trial)
             #end
-            """
-            if pin_edges && boundary == FreeBoundary()
-                pin_boundary!(n_trial)
-            end
-            """
-            H_trial = H(n_trial,params,lattice,boundary)
+
+            #if pin_edges && boundary == FreeBoundary()
+            #    pin_boundary!(n_trial)
+            #end
+            
+            H_trial = H(n_trial,system)
 
             if !adaptive_dt || H_trial <= H_current
                 n .= n_trial
@@ -115,10 +117,9 @@ function relax(n_init::Array{Float64,3}, params::HamiltonianParameters, lattice:
             else 
                 dt *= 0.90
             end
-        end
+        end #endwhile
 
         if !accepted
-            # could not find an improving step; stop early
             println("could not find an improving step; stopped early")
             # fill in the outputs for a nicer display
             H_vals[step:1:end] .= H_current

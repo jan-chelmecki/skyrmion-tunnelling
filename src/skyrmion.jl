@@ -1,6 +1,33 @@
+function skyrmion_ansatz(system::System; radius = 2.0, relax_length = 2.0)
+    @unpack_lattice system
+    X,Y = XY_meshgrid(lattice)
+    R = sqrt.(X.^2 .+ Y.^2)
+    theta = pi .- 2 .* atan.(R .* exp.((R .- radius) ./ relax_length))
+
+    # compute the vector coordinates
+    n = zeros(Float64, 3, lattice.nx, lattice.ny)
+    n[1, :, :] .= sin.(theta) .* X ./ R
+    n[2, :, :] .= sin.(theta) .* Y ./ R
+    n[3, :, :] .= cos.(theta)
+    return n
+end
+
+function skyrmion(system::System; show_result = true, LLG_relax = true)
+    n = skyrmion_ansatz(system, radius=2.0, relax_length=2.0) # empirically, I know this works quite well 
+    anneal!(n, system, alpha=0.96, T0=1e-3,T_minimal=1e-20,printing=false)
+    if LLG_relax # slower but surly
+        n = relax(n, system, dt=0.2, N_steps=20000, adaptive_dt=true)
+    end
+    if show_result
+        show_nz(n, system.lattice)
+        show_topological_charge(n, system.lattice)
+    end
+    return n
+end
+
 function topological_charge(n::Array{Float64, 3}, lattice::LatticeType)
     """
-    WARNING -----> DOES NOT TAKE ACCOUNT OF THE BOUNDARY CONDITIONS
+    WARNING -----> DOES NOT TAKE ACCOUNT PERIODIC THE BOUNDARY CONDITIONS
     """
     nx = lattice.nx; ny = lattice.ny
     # compute the derivatives IN LATTICE DIRECTIONS u and v
@@ -36,10 +63,10 @@ function topological_charge(n::Array{Float64, 3}, lattice::LatticeType)
     return sum(Q_density), Q_density
 end
 
+"""
+# ----- old
+
 function mean_field_skyrmion(nx,ny,J1,J2,J3,K,B;b=1.7,show=true)
-    """
-    To remove and replace later, ideally.
-    """
     I1 = -2*(J1+J2+4*J3) ### this is missing a factor of 2 in front of J2
     I2 = -1/8*(J1+4*J2+16*J3)
     I3 = 1/24*(J1-4*J2+16*J3)
@@ -65,22 +92,22 @@ function mean_field_skyrmion(nx,ny,J1,J2,J3,K,B;b=1.7,show=true)
     n[3, :, :] .= cos.(theta)
     
     if show
-        println("J1 = ", J1, ",\tJ2 = ", J2, "\tJ3 = ", J3, "\n K = ",K,"\tB_middle = ",B[div(nx,2), div(ny,2)],"\n")
-        println("I1 = ", round(I1,digits=2),"\nI2 = ", round(I2,digits=2))
+        println("J1 = ", J1, ",J2 = ", J2, "J3 = ", J3, " K = ",K,"B_middle = ",B[div(nx,2), div(ny,2)],")
+        println("I1 = ", round(I1,digits=2),"I2 = ", round(I2,digits=2))
         println("spatial anisotropy ratio : ", round(I3/I2,digits=2))
         x0 = sqrt(I2/I1)
         println("sqrt(I2/I1) length scale = ", round(x0,digits=2))
         println("H_MF = ",round(I2/I1^2,digits=2), "*H_micro = ", round(Ha,digits=2))
         if Ha<1/4
-            println("\n\nHa < 1/4 -----> SKYRMIONS MIGHT BE UNSTABLE")
+            println("Ha < 1/4 -----> SKYRMIONS MIGHT BE UNSTABLE")
         end
-        println("\nContinuum approximation guess suggests")
+        println("Continuum approximation guess suggests")
         r = LinRange(0,30,100) #non-dimensional length
         theta = exp.(-real(q) * r/b) .* cos.( imag(q)*r/b)
-        P = plot(r,theta, label="Ha = "*string(round(Ha,digits=2)),xlabel="r non-dim",ylabel=L"\theta", title=L"\theta\;\; \textrm{ profile}")
+        P = plot(r,theta, label="Ha = "*string(round(Ha,digits=2)),xlabel="r non-dim",ylabel=L
         display(P)
 
-        println("\nfor which the skyrmion looks as follows")
+        println("for which the skyrmion looks as follows")
         show_skyrmion(n)
     end
 
@@ -88,21 +115,8 @@ function mean_field_skyrmion(nx,ny,J1,J2,J3,K,B;b=1.7,show=true)
     return n
 end
 
-function skyrmion_ansatz(lattice::LatticeType; radius = 3.0, relax_length = 2.0)
-    X,Y = XY_meshgrid(lattice)
-    R = sqrt.(X.^2 .+ Y.^2)
-    theta = pi .- 2 .* atan.(R .* exp.((R .- radius) ./ relax_length))
 
-    # compute the vector coordinates
-    n = zeros(Float64, 3, lattice.nx, lattice.ny)
-    n[1, :, :] .= sin.(theta) .* X ./ R
-    n[2, :, :] .= sin.(theta) .* Y ./ R
-    n[3, :, :] .= cos.(theta)
-    return n
-end
 
-"""
-# ----- old
 function gradient(f, dx, dy)
     nx, ny = size(f)
     dfdx = zeros(Float64, nx, ny)

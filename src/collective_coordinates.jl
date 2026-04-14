@@ -55,11 +55,29 @@ function wz(x,y,lattice::LatticeType,coord::CollectiveCoordinate)
     w = zeros(ComplexF64,nx,ny)
     z = zeros(ComplexF64,nx,ny)
     for j=1:ny,i=1:nx
-        w1,z1,dw1,dw2 = compute_wz_fields(coord,i,j,X,Y)
+        w1,z1,dw1,dz1 = compute_wz_fields(coord,i,j,X,Y)
         w[i,j] = w1
         z[i,j] = z1
     end
     return w, z
+end
+
+function wzdwdz(x,y,lattice::LatticeType,coord::CollectiveCoordinate)
+    nx = lattice.nx
+    ny = lattice.ny
+    X = ComplexF64(x); Y = ComplexF64(y)
+    w = zeros(ComplexF64,nx,ny)
+    z = zeros(ComplexF64,nx,ny)
+    dw = zeros(ComplexF64,nx,ny)
+    dz = zeros(ComplexF64,nx,ny)
+    for j=1:ny,i=1:nx
+        w1,z1,dw1,dz1 = compute_wz_fields(coord,i,j,X,Y)
+        w[i,j] = w1
+        z[i,j] = z1
+        dw[i,j] = dw1
+        dz[i,j] = dz1    
+    end
+    return w, z, dw, dz
 end
 
 function n(x,lattice::LatticeType,coord::CollectiveCoordinate)

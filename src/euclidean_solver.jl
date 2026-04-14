@@ -8,6 +8,7 @@ Solver for the Euclidean time dynamics restricted to a collective coordinate man
 function H_grad(x::ComplexF64, y::ComplexF64,
                 w::AbstractMatrix{ComplexF64},z::AbstractMatrix{ComplexF64},dw::AbstractMatrix{ComplexF64},dz::AbstractMatrix{ComplexF64},
                 params::HamiltonianParameters, lattice::L, boundary::BCs) where {L<:LatticeType, BCs<:BoundaryCondition}
+    
 
     dHdx = 0.0 + 0.0im
     dHdy = 0.0 + 0.0im
@@ -165,7 +166,8 @@ end
 
 ### friendlier functions for display
 
-function M(x,y,coord::CollectiveCoordinate,lattice::LatticeType)
+function M(x,y,system::System)
+    @unpack_system system
     s = 0.0 + 0.0im
     for j=1:lattice.ny, i=1:lattice.nx
         w, z, dw, dz = compute_wz_fields(coord,i,j,x,y)
@@ -176,7 +178,8 @@ function M(x,y,coord::CollectiveCoordinate,lattice::LatticeType)
     return s
 end
 
-function v(x,y,params::HamiltonianParameters,lattice::LatticeType,boundary::BoundaryCondition,coord::CollectiveCoordinate)
+function v(x,y,system::System,coord::CollectiveCoordinate)
+    @unpack_system system
     out = zeros(ComplexF64,2)
     nx = lattice.nx
     ny = lattice.ny
@@ -185,11 +188,11 @@ function v(x,y,params::HamiltonianParameters,lattice::LatticeType,boundary::Boun
     return out
 end
 
-function solve_ivp(params::HamiltonianParameters, lattice::LatticeType, boundary::BoundaryCondition, coord::CollectiveCoordinate; 
-                dt::Float64, T, x0)
+function solve_ivp(x0, system::System, coord::CollectiveCoordinate; dt::Float64, T)
+    @unpack_system system
     u0 = zeros(ComplexF64,2)
     u0 .= x0
-    N_steps = Int(round(T/dt))
+    N_steps = Int(round(abs(T/dt)))
     sol = zeros(ComplexF64,2,N_steps)
     solve_ivp!(sol,u0,dt,N_steps,params,lattice,boundary,coord)
     return sol

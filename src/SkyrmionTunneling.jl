@@ -8,6 +8,7 @@ include("types.jl")
 include("neighbours.jl")
 include("boundary_conditions.jl")
 include("hamiltonian_parameters.jl")
+
 include("monte_carlo.jl")
 
 include("fields.jl")
@@ -18,6 +19,8 @@ include("visualize.jl")
 
 include("collective_coordinates.jl")
 include("euclidean_solver.jl")
+include("instanton.jl")
+
 include("testing.jl")
 
 export BoundaryCondition
@@ -30,5 +33,7 @@ export HamiltonianParameters
 
 export CollectiveCoordinate
 export LambdaCoordinate, EtaCoordinate
+
+export System
 
 end

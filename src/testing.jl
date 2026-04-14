@@ -43,7 +43,8 @@ function test_energy_functional()
     valid = true
     for lattice in testing_lattice, boundary in testing_boundary
         params = random_params(lattice)
-        E_FM = H(ferromagnetic(lattice), params, lattice, boundary)
+        system = System(params,lattice,boundary)
+        E_FM = H(ferromagnetic(lattice), system)
         err = abs(E_FM)
         if err > epsilon
             valid = false
@@ -59,12 +60,13 @@ function test_energy_functional()
     valid = true
     for lattice in testing_lattice, boundary in testing_boundary
         params = random_params(lattice)
+        system = System(params,lattice,boundary)
 
         n1 = random_configuration(lattice)
         n2 = rotate_around_z(n1, 2pi*rand())
 
-        H1 = H(n1,params,lattice,boundary)
-        H2 = H(n2,params,lattice,boundary)
+        H1 = H(n1,system)
+        H2 = H(n2,system)
 
         err = abs(H1-H2)
         if err > epsilon
@@ -81,12 +83,13 @@ function test_energy_functional()
     valid = true
     for lattice in testing_lattice, boundary in testing_boundary
         params = random_params(lattice)
+        system = System(params,lattice,boundary)
 
         n = random_configuration(lattice)
         w = w_project(n)
 
-        H1 = H(n,params,lattice,boundary)
-        H2 = H(w,conj(w),params,lattice,boundary)
+        H1 = H(n,system)
+        H2 = H(w,conj(w),system)
 
         err = abs(H1-H2)
         if err > epsilon
@@ -101,6 +104,9 @@ function test_energy_functional()
 end
 
 function test_euclidean_solver()
+    n_Sk = skyrmion_ansatz(lattice, radius=2.0, relax_length=2.0)
+
+    coord = [LambdaCoordinate(w_project(n_Sk))]
     return 0
 end
 
@@ -164,28 +170,5 @@ function test_uv_algebra(u,v)
     println("err = ", err)
     if err<1e-12
         println("-----> algebra consistent")
-    end
-end
-
-function test_eta_solver(up,um,vp,vm)
-    nx, ny = up.size
-    J1 = 1.0; J2 = -1.23231; J3 = -0.1232; K = 0.001012
-    B = uniform_B(nx,ny,2.432)
-    T = 0.5
-    dt = 0.001
-    N_steps = Int(round(T/dt))
-    sol = zeros(ComplexF64,2,N_steps)
-    u0 = randn(2)+ im*randn(2) / sqrt(2)
-
-    boundary = PeriodicBoundary()
-    solve_ivp!(sol,u0,dt,N_steps,up,um,vp,vm,nx,ny,J1,J2,J3,K,B,boundary)
-    H_vals = [H_eta(sol[1,step],sol[2,step],up,um,vp,vm, nx,ny,J1,J2,J3,K,B,boundary) for step=1:N_steps]
-    energy_diff = maximum(abs.(H_vals .- H_vals[1]))
-    println("u0 = ",u0)
-    println("energy_diff = ", energy_diff)
-    if energy_diff<1e-8
-        println("\n\nEnergy conserved ----------> OK")
-    else
-        println("\n\nEnergy not conserved ----> error")
     end
 end
