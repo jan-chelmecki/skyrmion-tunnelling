@@ -158,6 +158,23 @@ function action(system, coord, sol; dt, show=true)
     return A
 end
 
+function equipotential_section(system::System,coord::CollectiveCoordinate; x_init = 1.0, num_points=20, radius = 0.1)
+    x_min = find_saddle(system,  coord, initial_guess = x_init)
+    println("The saddle point is at ", x_min)
+    H_inst = H(x_min,conj(x_min),system,coord)
+    points = []
+    @showprogress for trial=1:num_points
+        delta = randn(2)+im*randn(2) #random direction
+        inv_norm_delta = inv(sqrt(sum(abs2.(delta))))
+        delta *= (radius * inv_norm_delta)
+        x0, y0 = find_similar_energy(x_min, conj(x_min), system, coord, x_init = x_min+delta[1], y_init=x_min+delta[2])
+        H0 = H(x0, y0, system, coord)
+        if abs(H0-H_inst) < 1e-10
+            push!(points, (x0,y0))
+        end
+    end
+    return points
+end
 
 function instanton(system::System, coord::CollectiveCoordinate; x_init = 1.0, direction_guess, dt=0.01, T_forward=60.0, T_backward=20.0, show=true)
     x_min = find_saddle(system,  coord, initial_guess = x_init)
