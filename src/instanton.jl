@@ -186,7 +186,7 @@ function pretty_time_axis(sol; dt, T_total)
     return t .- t[ind]
 end
 
-function instanton(system::System, coord::CollectiveCoordinate; x_init = 1.0, direction_guess, dt=0.01, T_forward=60.0, T_backward=20.0, show=true, show_action=false)
+function instanton(system::System, coord::CollectiveCoordinate; x_init = 1.0, direction_guess, dt=0.01, T_forward=60.0, T_backward=20.0, show=true, show_action=false, xlims=(-2,2))
     x_min = find_saddle(system,  coord, initial_guess = x_init)
     #x_min = 1.0
     H_inst = H(x_min,conj(x_min),system,coord)
@@ -223,7 +223,7 @@ function instanton(system::System, coord::CollectiveCoordinate; x_init = 1.0, di
         plot!(t,imag.(sol[2,:]),label=L"Im$y$")
         display(P)
 
-        Q = plot(real.(sol[1,:]),real.(sol[2,:]), xlabel=L"$x$",ylabel=L"$y$",aspect_ratio=:equal,xlims=(-2,2),ylims=(-2,2),label="instanton",
+        Q = plot(real.(sol[1,:]),real.(sol[2,:]), xlabel=L"$x$",ylabel=L"$y$",aspect_ratio=:equal,xlims=xlims,ylims=xlims,label="instanton",
                 title="Instanton in the phase space (real projection)")
         display(Q)
     end
