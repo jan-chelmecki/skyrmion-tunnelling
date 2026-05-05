@@ -115,6 +115,7 @@ function find_similar_energy(x0, y0,system::System,coord::CollectiveCoordinate; 
     end
     return x,y
 end
+
 """
 function minimize_1D(f, a0, b0; epsilon=1e-15 )
     """
@@ -137,6 +138,7 @@ function minimize_1D(f, a0, b0; epsilon=1e-15 )
     return (a+b)/2
 end
 """
+
 function action(system, coord, sol; dt, show=true)
     @unpack_lattice system
     N = sol.size[2]-1
@@ -176,8 +178,17 @@ function equipotential_section(system::System,coord::CollectiveCoordinate; x_ini
     return points
 end
 
-function instanton(system::System, coord::CollectiveCoordinate; x_init = 1.0, direction_guess, dt=0.01, T_forward=60.0, T_backward=20.0, show=true)
+function pretty_time_axis(sol; dt, T_total)
+    x_avg = sum(sol[1,:])/sol.size[2]
+    x_avg = (abs(x_avg) > 2) ? 1.0 : x_avg
+    ind = argmin(abs2.(sol[1,:] .- x_avg))
+    t = LinRange(0, T_total, size(sol,2))
+    return t .- t[ind]
+end
+
+function instanton(system::System, coord::CollectiveCoordinate; x_init = 1.0, direction_guess, dt=0.01, T_forward=60.0, T_backward=20.0, show=true, show_action=false)
     x_min = find_saddle(system,  coord, initial_guess = x_init)
+    #x_min = 1.0
     H_inst = H(x_min,conj(x_min),system,coord)
     println("The saddle point is at ", x_min)
 
@@ -200,7 +211,54 @@ function instanton(system::System, coord::CollectiveCoordinate; x_init = 1.0, di
     # glue the solutions
     sol = hcat(sol_backward[:,end:-1:1], sol_forward)
 
-    t = LinRange(0, T_backward+T_forward, size(sol,2))
+    t = pretty_time_axis(sol, dt=dt, T_total=T_forward+T_backward)
+
+    imaginary = maximum(abs.(imag.(sol)))
+    
+    println("imaginary = ", imaginary)
+    if show
+        P = plot(t,real.(sol[1,:]),label=L"Re$x$", title="Instantonic trajectory",xlabel=L"T")
+        plot!(t,real.(sol[2,:]),label=L"Re$y$")
+        plot!(t,imag.(sol[1,:]),label=L"Im$x$")
+        plot!(t,imag.(sol[2,:]),label=L"Im$y$")
+        display(P)
+
+        Q = plot(real.(sol[1,:]),real.(sol[2,:]), xlabel=L"$x$",ylabel=L"$y$",aspect_ratio=:equal,xlims=(-2,2),ylims=(-2,2),label="instanton",
+                title="Instanton in the phase space (real projection)")
+        display(Q)
+    end
+    S_inst = action(system, coord, sol, dt=dt, show=show_action)
+    return S_inst, sol
+    # regularize if necessary
+end
+
+
+function instanton_force_real(system::System, coord::CollectiveCoordinate; x_init = 1.0, direction_guess, dt=0.01, T_forward=60.0, T_backward=20.0, show=true)
+    x_min = find_saddle(system,  coord, initial_guess = x_init)
+    #x_min = 1.0
+    H_inst = H(x_min,conj(x_min),system,coord)
+    println("The saddle point is at ", x_min)
+
+    x0, y0 = find_similar_energy(x_min, conj(x_min), system, coord, x_init = x_min+direction_guess[1], y_init=x_min+direction_guess[2])
+    H0 = H(x0, y0, system, coord)
+    println("The instantonic trajectory passes through the point \n x = ", x0, "\n y = ", y0)
+    println("sanity check : |H_inst-H0| = ", abs(H_inst-H0))
+
+    # The trajectory parting from thus found point is the instanton. Integrate it forward and backward in time.
+    u0 = [ComplexF64(x0),ComplexF64(y0)]
+
+    # forward integration
+    println("-- Integrating forwards -- ")
+    sol_forward = solve_ivp_force_real(u0, system, coord, dt=dt,T=T_forward)
+
+    # backward integration
+    println("-- Integrating backwards -- ")
+    sol_backward = solve_ivp_force_real(u0, system, coord, dt=-dt,T=T_backward)
+
+    # glue the solutions
+    sol = hcat(sol_backward[:,end:-1:1], sol_forward)
+
+    t = pretty_time_axis(sol, dt=dt, T_total=T_forward+T_backward)
 
     imaginary = maximum(abs.(imag.(sol)))
     println("imaginary = ", imaginary)
@@ -215,18 +273,12 @@ function instanton(system::System, coord::CollectiveCoordinate; x_init = 1.0, di
                 title="Instanton in the phase space (real projection)")
         display(Q)
     end
-
-    return sol
+    S_inst = action(system, coord, sol, dt=dt, show=false)
+    return S_inst, sol
     # regularize if necessary
-
-    #diffs = maximum(abs.(diff(sol,dims=2)), dims=1)[1,:]
-    #first_singularity = findlast(>(1),diffs[1:1:N_steps_backward])
-    #last_singularity = findfirst(>(1),diffs[N_steps_backward+1:1:end])
-    #first_singularity = (first_singularity==nothing) ? 1 : first_singularity
-    #last_singularity = (last_singularity==nothing) ? N_steps_forward+N_steps_backward : last_singularity
-    #sol_reg = sol[:,first_singularity+3:1:last_singularity-3]
-    ##action(w0, sol_reg, dt)
 end
+
+
 """
 function instanton(system::System, coord::CollectiveCoordinate; x_init = 1.0, pert = 0.05, dt=0.01, T_forward=60.0, T_backward=20.0, fixed="y", show=true)
     # ---- > Given the mirror symmetry abound the diagonal, this comes down to minimizing a 1D function.

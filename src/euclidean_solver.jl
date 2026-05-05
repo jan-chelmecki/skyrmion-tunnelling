@@ -164,6 +164,54 @@ function solve_ivp!(sol::AbstractMatrix{ComplexF64},
     end        
 end
 
+function solve_ivp_force_real!(sol::AbstractMatrix{ComplexF64},
+                    u0::AbstractVector{ComplexF64},dt::Float64,N_steps::Int,
+                    params::HamiltonianParameters, lattice::LatticeType, boundary::BoundaryCondition, coord::CollectiveCoordinate)
+    
+    nx = lattice.nx 
+    ny = lattice.ny
+
+    u = zeros(ComplexF64,2)
+    u .= real(u0)
+
+    k1 = zeros(ComplexF64,2)
+    k2 = zeros(ComplexF64,2)
+    k3 = zeros(ComplexF64,2)
+    k4 = zeros(ComplexF64,2)
+
+    w = zeros(ComplexF64,nx,ny)
+    z = zeros(ComplexF64,nx,ny)
+    dw = zeros(ComplexF64,nx,ny)
+    dz = zeros(ComplexF64,nx,ny)
+
+    @showprogress for step=1:N_steps
+
+        v!(k1,u[1],u[2],                 w,z,dw,dz, params,lattice,boundary,coord)
+        k1 .= real(k1)
+        v!(k2,u[1]+k1[1]*dt/2,u[2]+k1[2]*dt/2, w,z,dw,dz, params,lattice,boundary,coord)
+        k2 .= real(k2)
+        v!(k3,u[1]+k2[1]*dt/2,u[2]+k2[2]*dt/2,  w,z,dw,dz, params,lattice,boundary,coord)
+        k3 .= real(k3)
+        v!(k4,u[1]+k3[1]*dt,u[2]+k3[2]*dt,      w,z,dw,dz, params,lattice,boundary,coord)
+        k4 .= real(k4)
+
+        @inbounds begin
+            du1 = dt/6 * (k1[1] + 2*(k2[1] + k3[1]) + k4[1])
+            du2 = dt/6 * (k1[2] + 2*(k2[2] + k3[2]) + k4[2])
+
+            if abs2(du1) + abs2(du2) > 1 # stop if reached a singularity
+                break
+            end
+
+            u[1] += du1
+            u[2] += du2
+
+            sol[1,step] = u[1]
+            sol[2,step] = u[2]
+        end
+    end        
+end
+
 ### friendlier functions for display
 
 function M(x,y,system::System)
@@ -188,6 +236,13 @@ function v(x,y,system::System,coord::CollectiveCoordinate)
     return out
 end
 
+function regularize_sol(sol)
+    diffs = maximum(abs2.(diff(sol,dims=2)), dims=1)[1,:]
+    singularity = findfirst(>(1.0), diffs)
+    singularity = (singularity isa Nothing) ? sol.size[2] : singularity
+    return sol[:,1:1:singularity]
+end
+
 function solve_ivp(x0, system::System, coord::CollectiveCoordinate; dt::Float64, T)
     @unpack_system system
     u0 = zeros(ComplexF64,2)
@@ -195,9 +250,20 @@ function solve_ivp(x0, system::System, coord::CollectiveCoordinate; dt::Float64,
     N_steps = Int(round(abs(T/dt)))
     sol = zeros(ComplexF64,2,N_steps)
     solve_ivp!(sol,u0,dt,N_steps,params,lattice,boundary,coord)
+    sol = regularize_sol(sol)
     return sol
 end
 
+function solve_ivp_force_real(x0, system::System, coord::CollectiveCoordinate; dt::Float64, T)
+    @unpack_system system
+    u0 = zeros(ComplexF64,2)
+    u0 .= x0
+    N_steps = Int(round(abs(T/dt)))
+    sol = zeros(ComplexF64,2,N_steps)
+    solve_ivp_force_real!(sol,u0,dt,N_steps,params,lattice,boundary,coord)
+    sol = regularize_sol(sol)
+    return sol
+end
 """
 function M(x::ComplexF64,
             y::ComplexF64,

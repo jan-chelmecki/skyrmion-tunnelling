@@ -12,17 +12,23 @@ function skyrmion_ansatz(system::System; radius = 2.0, relax_length = 2.0)
     return n
 end
 
-function skyrmion(system::System; show_result = true, LLG_relax = true)
+function skyrmion(system::System; show_result = true, annealing = true, LLG_relax = true, N_steps=10000)
     n = skyrmion_ansatz(system, radius=2.0, relax_length=2.0) # empirically, I know this works quite well 
-    anneal!(n, system, alpha=0.96, T0=1e-3,T_minimal=1e-20,printing=false)
+    if annealing
+        anneal!(n, system, alpha=0.96, T0=1e-3,T_minimal=1e-20,printing=false)
+    end
     if LLG_relax # slower but surly
-        n = relax(n, system, dt=0.2, N_steps=20000, adaptive_dt=true)
+        relax!(n, system, dt=0.2, N_steps=N_steps, adaptive_dt=true, dt_min=1e-20, graph=false)
     end
     if show_result
         show_nz(n, system.lattice)
         show_topological_charge(n, system.lattice)
     end
     return n
+end
+
+function skyrmion_size(n::Array{Float64, 3})
+    return sum( 1 .- n[3,:,:])
 end
 
 function topological_charge(n::Array{Float64, 3}, lattice::LatticeType)

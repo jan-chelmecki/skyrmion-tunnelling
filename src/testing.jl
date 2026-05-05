@@ -12,10 +12,11 @@ end
     return lattice_geometry(nx,ny)::LatticeType
 end
 
-function random_params(lattice::LatticeType; B_max = 0.6)
+function random_params(lattice::LatticeType; B_max = 0.6, J3_to_zero = false)
     J1 = 1.0
     J2 = - random_uniform(0.2, 0.6)
     J3 = - random_uniform(0.05, 0.20)
+    J3 = J3_to_zero ? 0.0 : J3
     K = random_uniform(-0.1, 0.4)
     B_val = random_uniform(0.0, B_max)
     B = uniform_B(B_val, lattice)
@@ -26,9 +27,9 @@ end
 @inline testing_boundary = (FreeBoundary(), PeriodicBoundary())
 @inline testing_lattice = [random_latice(type) for type in supported_lattice_types]
 
-function raise_error(err,params,lattice,boundary)
-    println("\nERROR -------------------------------------> \n ------------> occured for \n", lattice, "\n", boundary)
-    display_parameters(params)
+function raise_error(err,system)
+    println("\nERROR -------------------------------------> \n ------------> occured for \n")
+    describe_system(system)
     println("err = ", abs(err), "\n")
 end
 
@@ -48,7 +49,7 @@ function test_energy_functional()
         err = abs(E_FM)
         if err > epsilon
             valid = false
-            raise_error(err,params,lattice,boundary)
+            raise_error(err,system)
             println("E_ferromagnetic != 0")
         end
     end
@@ -71,7 +72,7 @@ function test_energy_functional()
         err = abs(H1-H2)
         if err > epsilon
             valid = false
-            raise_error(err,params,lattice,boundary)
+            raise_error(err,system)
             println("H is not Sz invariant")
         end
     end
@@ -94,7 +95,7 @@ function test_energy_functional()
         err = abs(H1-H2)
         if err > epsilon
             valid = false
-            raise_error(err,params,lattice,boundary)
+            raise_error(err,system)
             println("H vector and H stereographic are NOT consistent")
         end
     end
@@ -108,6 +109,37 @@ function test_euclidean_solver()
 
     coord = [LambdaCoordinate(w_project(n_Sk))]
     return 0
+end
+
+function test_conj_reversal_swap_symmetry(system::System, coord::CollectiveCoordinate; T = 1.0, dt = 0.01)
+    u1 = 1 .+ (randn(2)+ im*randn(2) ) / 10.0
+    u2 = [conj(u1[2]),conj(u1[1])]
+
+    sol1 = solve_ivp(u1, system, coord, T=T, dt=dt)
+    sol2 = solve_ivp(u2, system, coord, T=T, dt=dt)
+
+    difference = similar(sol1)
+    difference[1,:] .= sol1[1] - conj.(sol2[2])
+    difference[2,:] .= sol1[2] - conj.(sol2[1])
+    max_diff = maximum(abs.(difference))
+    println("max_diff = ", max_diff)
+    if max_diff > 1e-9
+        raise_error(max_diff, system)
+    else
+        println("Symmetry OK")
+    end
+end
+
+function test_energy_conservation(sol::Matrix{ComplexF64}, system::System, coord::CollectiveCoordinate)
+    energy = [H(sol[1,i], sol[2,i], system, coord) for i=1:size(sol,2)]
+    energy_diff = sqrt(maximum(abs2,(energy .- energy[1])))
+    println("energy_diff = ", energy_diff)
+    if energy_diff > 1e-7
+        raise_error(energy_diff, system)
+    else
+        println("Energy conserved")
+    end
+    return energy_diff
 end
 
 function test_lambda_solver(w0)

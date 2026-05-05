@@ -32,7 +32,7 @@ export SquareLattice, TriangularLattice
 export HamiltonianParameters
 
 export CollectiveCoordinate
-export LambdaCoordinate, EtaCoordinate
+export LambdaCoordinate, EtaCoordinate, AlphaCoordinate
 
 export System
 

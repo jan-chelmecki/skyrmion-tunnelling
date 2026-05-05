@@ -47,13 +47,15 @@ function coordinate_label(coord::CollectiveCoordinate)
         return L"$\lambda$", L"$\bar{\lambda}$"
     elseif coord isa EtaCoordinate
         return L"$\eta$", L"$\bar{\eta}$"
+    elseif coord isa AlphaCoordinate
+        return L"$\alpha$", L"$\bar{\alpha}$"
     end
 end
 
 function check_if_imaginary(matrix)
     imaginary = maximum(abs.(imag.(matrix)))
-    println("Imaginary part = $(round(imaginary, digits=2))")
-    if imaginary > 1e-9
+    println("Imaginary part = $imaginary")
+    if imaginary > 1e-5
         println("WARNING ----> imaginary part is nonzero !!!!! ---------> It gets neglected via a real projection")
     end
 end

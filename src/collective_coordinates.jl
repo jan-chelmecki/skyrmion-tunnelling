@@ -9,6 +9,11 @@ struct EtaCoordinate{T} <: CollectiveCoordinate
     vm::T
 end
 
+struct AlphaCoordinate{T} <: CollectiveCoordinate
+    u::T
+    v::T
+end
+
 @inline function compute_wz_fields(coord::LambdaCoordinate, i, j, lambda, lambda_bar)
     w0ij = coord.w0[i,j]
     a = real(w0ij)
@@ -46,6 +51,29 @@ end
 
     return w, z, dw, dz
 end
+
+@inline function compute_wz_fields(coord::AlphaCoordinate, i, j, alpha, alpha_bar)
+    u = coord.u[i,j]
+    v = coord.v[i,j]
+
+    # denominators
+    d = 1+alpha*u
+    dbar = 1+alpha_bar*conj(u)
+
+    invd = inv(d)
+    invdbar = inv(dbar)
+
+    # fields
+    w = alpha*v*invd
+    z = alpha_bar*conj(v)*invdbar
+
+    # derivatives
+    dw = v*invd^2
+    dz = conj(v)*invdbar^2
+
+    return w, z, dw, dz
+end
+
 
 # a friendlier function for outputs and graphics
 function wz(x,y,lattice::LatticeType,coord::CollectiveCoordinate)

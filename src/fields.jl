@@ -49,6 +49,19 @@ function check_norm(n)
     println("Norm varies from ", minimum(norm), " to ", maximum(norm))
 end
 
+function metric_distance(n1::Array{Float64,3},n2::Array{Float64,3})
+    nx = size(n1,2); ny = size(n2,3)
+    # to ensure proper nx,ny scaling, take the maximum (rather than the sum) of |n1-n2| over sites
+    max = 0.0
+    for j=1:ny, i=1:nx
+        norm = (n1[1,i,j]-n2[1,i,j])^2 + (n1[2,i,j]-n2[2,i,j])^2 + (n1[3,i,j]-n2[3,i,j])^2
+        if norm > max
+            max = norm
+        end
+    end
+    return sqrt(max)
+end
+
 function random_configuration(lattice::LatticeType)
     n = randn((3,lattice.nx,lattice.ny))
     normalize!(n)
@@ -59,6 +72,17 @@ function rotate_around_z(n, phi)
     n_new = copy(n)
     n_new[1,:,:] = cos(phi) * n[1,:,:] - sin(phi) * n[2,:,:]
     n_new[2,:,:] = sin(phi) * n[1,:,:] + cos(phi) * n[2,:,:]
+    return n_new
+end
+
+function reflect_y(n)
+    nx = n.size[2]; ny = n.size[3]
+    n_new = zeros(3,nx,ny)
+    for i=1:nx, j=1:ny
+        n_new[1,i,j] = n[1,i,j]
+        n_new[2,i,j] = -n[2,i,j]
+        n_new[3,i,j] = n[3,i,j]
+    end
     return n_new
 end
 
@@ -75,6 +99,19 @@ function uniform_B(B_val,lattice::LatticeType)
     return B_val*ones(lattice.nx,lattice.ny)
 end
 
+function local_B_field(lattice::LatticeType; B_centre, B_inf, radius, relax_length)
+    X,Y = XY_meshgrid(lattice)
+    R = sqrt.(X.^2 + Y.^2)
+    B = zeros(lattice.nx, lattice.ny)
+    for i in eachindex(B)
+        if R[i] < radius
+            B[i] = B_centre
+        else
+            B[i] = B_inf + (B_centre-B_inf)*exp(- ((R[i]-radius)/relax_length)^2 )
+        end
+    end
+    return B 
+end
 
 # stereographic projection
 function w_project(n::Array{Float64,3})
@@ -91,4 +128,14 @@ function n_vector(w::Array{ComplexF64,2})
     n[2, :, :] .= real.(-im .* (w .- conj.(w)) ./ denom)
     n[3, :, :] .= real.((1 .- w .* conj.(w)) ./ denom)
     return n
+end
+
+function uv(n::Array{Float64,3})
+    nx = n.size[2]; ny = n.size[3]
+    u = zeros(ComplexF64,nx,ny); v = similar(u)
+    for i=1:nx,j=1:ny
+        u[i,j] = sqrt((1+n[3,i,j])/2)
+        v[i,j] = (n[1,i,j] + im*n[2,i,j]) / sqrt(2*(1+n[3,i,j]))
+    end
+    return u,v
 end

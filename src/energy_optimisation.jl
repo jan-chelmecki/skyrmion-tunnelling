@@ -70,17 +70,19 @@ function pin_centre!(n; direction = [0.0,0.0,1.0])
     n[:,mx,my+1] .= direction
     n[:,mx+1,my+1] .= direction
 end
-"""    
-function relax(n_init::Array{Float64,3}, system::System;
-            dt::Float64, N_steps::Int,graph::Bool=true,adaptive_dt::Bool=true)
+"""  
+
+function relax!(n::Array{Float64,3}, system::System;
+            dt::Float64=0.01, N_steps::Int,silent=false,graph=true,adaptive_dt::Bool=true,dt_min::Float64=1e-12)
     """
     Gradient descent on H
     """
-    println("Launching LLG relaxation for")
-    describe_system(system)
+    if !silent
+        println("Launching LLG relaxation for")
+        describe_system(system)
+    end
 
-    g = zeros(size(n_init))
-    n = copy(n_init)
+    g = zeros(size(n))
     n_trial = similar(n)
 
     H_current = H(n,system)
@@ -88,23 +90,16 @@ function relax(n_init::Array{Float64,3}, system::System;
 
     times = zeros(N_steps)
     t = 0.0
+    accepted = false
     @showprogress for step in 1:N_steps
 
         compute_descent_gradient!(g, n, system)
 
         accepted = false
 
-        while dt > 1e-12
+        while dt > dt_min
             n_trial .= n .+ dt .* g
             normalize!(n_trial)
-
-            #if pin_centre && step<300
-            #    pin_centre!(n_trial)
-            #end
-
-            #if pin_edges && boundary == FreeBoundary()
-            #    pin_boundary!(n_trial)
-            #end
             
             H_trial = H(n_trial,system)
 
@@ -115,7 +110,7 @@ function relax(n_init::Array{Float64,3}, system::System;
                 dt *= 1.01
                 break
             else 
-                dt *= 0.90
+                dt *= 0.9
             end
         end #endwhile
 
@@ -139,9 +134,105 @@ function relax(n_init::Array{Float64,3}, system::System;
         ylabel!(P,"energy")
         title!(P, "Energy during gradient descent")
         display(P)
-        println("t_max = $(t[end])")
+        println("t_max = $(times[end])")
     end
-    
+    reached_stable = !accepted
+    return reached_stable
+end
+"""
+function relax(n_init::Array{Float64,3}, system::System;
+            dt::Float64=0.01, N_steps::Int,silent=false,graph=true,adaptive_dt::Bool=true,dt_min::Float64=1e-12)
+    if !silent
+        println("Launching LLG relaxation for")
+        describe_system(system)
+    end
+
+    g = zeros(size(n_init))
+    n = copy(n_init)
+    n_trial = similar(n)
+
+    H_current = H(n,system)
+    H_vals = zeros(Float64,N_steps)
+
+    times = zeros(N_steps)
+    t = 0.0
+    accepted = false
+    @showprogress for step in 1:N_steps
+
+        compute_descent_gradient!(g, n, system)
+
+        accepted = false
+
+        while dt > dt_min
+            n_trial .= n .+ dt .* g
+            normalize!(n_trial)
+            
+            H_trial = H(n_trial,system)
+
+            if !adaptive_dt || H_trial <= H_current
+                n .= n_trial
+                H_current = H_trial
+                accepted = true
+                dt *= 1.01
+                break
+            else 
+                dt *= 0.9
+            end
+        end #endwhile
+
+        if !accepted
+            println("could not find an improving step; stopped early")
+            # fill in the outputs for a nicer display
+            H_vals[step:1:end] .= H_current
+            times[step:1:end] .= t
+            break
+        end
+
+        H_vals[step] = H_current
+        t += dt
+        times[step] = t
+        
+    end
+
+    if graph
+        P = plot(times,H_vals,label=false,xlabel="t")
+        xlabel!(P,"t")
+        ylabel!(P,"energy")
+        title!(P, "Energy during gradient descent")
+        display(P)
+        println("t_max = ")
+    end
+    reached_stable = !accepted
     return n
 end
+"""
+function is_metastable(n::Array{Float64,3}, system::System; trials=1, perturbation_size=0.01)
+    @unpack_lattice system
+    stable = true
+    n1 = similar(n); n2 = similar(n)
+    n1 .= n
+    s = zeros(3)
+    for trial=1:trials
 
+        # perturb each site slightly
+        for j=1:ny, i=1:nx
+            s .= n1[:,i,j]
+            r = randn(3)
+            small_rotation!(s,r,perturbation_size)
+            n1[:,i,j] .= s
+        end
+        n2 .= n1
+        println("trial $trial out of $trials")
+        relax!(n2, system, N_steps = 1000, graph=false,silent=true,dt=epsilon,adaptive_dt=true)
+
+        diff1 = metric_distance(n,n1)
+        diff2 = metric_distance(n,n2)
+        if diff2 >= diff1 # got further
+            stable = false
+            println("unstable direction found")
+            println("diff1 = $diff1, \t diff2 = $diff2")
+            break
+        end
+    end
+    return stable
+end

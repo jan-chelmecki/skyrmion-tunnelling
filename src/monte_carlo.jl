@@ -169,6 +169,6 @@ function anneal!(n::Array{Float64, 3}, system::System;
         loop_count += 1
     end
     if loop_count >= max_iterations
-        println("Monte Carlo has timed out ")
+        println("Monte Carlo has timed out. Change max_iterations kwarg to run it longer")
     end
 end
