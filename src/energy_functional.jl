@@ -9,13 +9,13 @@ All functions that calculate the energy.
 
     if lattice isa SquareLattice && boundary == FreeBoundary()
         E = -(J1 * (2 * nx * ny - (nx + ny)) + J2 * (2 * nx * ny - 2 * (nx + ny) + 2) 
-                + J3 * (2 * nx * ny - 2 * (nx + ny)) + sum(B[1:1:nx,1:1:ny]) + K * nx * ny)
+                + J3 * (2 * nx * ny - 2 * (nx + ny)) + sum(B[3, 1:1:nx,1:1:ny]) + K * nx * ny)
     elseif  lattice isa SquareLattice && boundary == PeriodicBoundary()
-        E = -(nx * ny * (2 * J1 + 2 * J2 + 2 * J3 + K) + sum(B[1:1:nx,1:1:ny]))
+        E = -(nx * ny * (2 * J1 + 2 * J2 + 2 * J3 + K) + sum(B[3, 1:1:nx,1:1:ny]))
     elseif lattice isa TriangularLattice && boundary == FreeBoundary()
-        E = -(nx * ny * (3*J1 + 3*J2 + K) + sum(B[1:1:nx,1:1:ny])) + J1*(2*(nx+ny)-1) + J2*(4*(nx+ny)-5)
+        E = -(nx * ny * (3*J1 + 3*J2 + K) + sum(B[3, 1:1:nx,1:1:ny])) + J1*(2*(nx+ny)-1) + J2*(4*(nx+ny)-5)
     elseif lattice isa TriangularLattice && boundary == PeriodicBoundary()
-        E = -( nx*ny*(3*J1+3*J2+K) + sum(B[1:1:nx,1:1:ny]))
+        E = -( nx*ny*(3*J1+3*J2+K) + sum(B[3, 1:1:nx,1:1:ny]))
     else
         E = 0.0
     end
@@ -59,7 +59,8 @@ function H(n::Array{Float64, 3}, system::System)
         end
 
         #account for the anisotropy and the external field
-        E -= ( K*na3*na3 + B[i,j]*na3)
+        E -= (B[1,i,j]*na1 + B[2,i,j]*na2 + B[3,i,j]*na3)
+        E -= ( K*na3*na3 )
     end
     # subtract the energy of the FM state
     E -= FM_energy(system)
@@ -77,6 +78,7 @@ function H(w::Array{ComplexF64,2}, z::Array{ComplexF64,2}, system::System)
     for j=1:ny, i=1:nx
         w1 = w[i, j]
         z1 = z[i, j]
+        invd1 = inv(1+w1*z1)
         if lattice isa SquareLattice
 
             for (di, dj, J) in ((1,0,J1),(0,1,J1),(1,1,J2),(1,-1,J2),(2,0,J3),(0,2,J3))
@@ -84,8 +86,9 @@ function H(w::Array{ComplexF64,2}, z::Array{ComplexF64,2}, system::System)
                 if ok # valid neighbour
                     
                     w2, z2 = w[kk,ll], z[kk,ll]
+                    invd2 = inv(1+w2*z2)
                     # interaction energy
-                    E += -J * (2 * (w1 * z2 + z1 * w2) + (1 - z1 * w1) * (1 - z2 * w2)) / ((1 + w1 * z1) * (1 + w2 * z2))
+                    E += -J * (2 * (w1 * z2 + z1 * w2) + (1 - z1 * w1) * (1 - z2 * w2)) * invd1 * invd2
 
                 end
             end
@@ -96,16 +99,20 @@ function H(w::Array{ComplexF64,2}, z::Array{ComplexF64,2}, system::System)
                 if ok # valid neighbour
 
                     w2, z2 = w[kk,ll], z[kk,ll]
+                    invd2 = inv(1+w2*z2)
                     # interaction energy
-                    E += -J * (2 * (w1 * z2 + z1 * w2) + (1 - z1 * w1) * (1 - z2 * w2)) / ((1 + w1 * z1) * (1 + w2 * z2))
+                    E += -J * (2 * (w1 * z2 + z1 * w2) + (1 - z1 * w1) * (1 - z2 * w2)) * invd1 * invd2
 
                 end
             end
         end
 
         # add the external field and anisotropy contributions
-        n_z = (1 - w1 * z1) / (1 + w1 * z1)
-        E += -B[i, j] * n_z - K * n_z^2
+        n_x = (w1 + z1) * invd1
+        n_y = -im*(w1 - z1) * invd1
+        n_z = (1 - w1 * z1) * invd1
+        E -= (B[1,i,j]*n_x + B[2,i,j]*n_y + B[3,i,j]*n_z)
+        E -= K * n_z^2
     end
     E = E - FM_energy(system)
     return E

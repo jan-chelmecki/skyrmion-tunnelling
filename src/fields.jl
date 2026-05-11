@@ -96,18 +96,20 @@ function plane_wave(lattice::LatticeType; k = 0.0, amp=0.001)
 end
 
 function uniform_B(B_val,lattice::LatticeType)
-    return B_val*ones(lattice.nx,lattice.ny)
+    B = zeros(3,lattice.nx, lattice.ny)
+    B[3,:,:] .= B_val
+    return B
 end
 
 function local_B_field(lattice::LatticeType; B_centre, B_inf, radius, relax_length)
     X,Y = XY_meshgrid(lattice)
     R = sqrt.(X.^2 + Y.^2)
-    B = zeros(lattice.nx, lattice.ny)
-    for i in eachindex(B)
-        if R[i] < radius
-            B[i] = B_centre
+    B = zeros(3,lattice.nx, lattice.ny)
+    for j=1:ny, i=1:nx
+        if R[i,j] < radius
+            B[3,i,j] = B_centre
         else
-            B[i] = B_inf + (B_centre-B_inf)*exp(- ((R[i]-radius)/relax_length)^2 )
+            B[3,i,j] = B_inf + (B_centre-B_inf)*exp(- ((R[i]-radius)/relax_length)^2 )
         end
     end
     return B 

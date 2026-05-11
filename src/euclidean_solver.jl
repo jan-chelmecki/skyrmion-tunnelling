@@ -28,6 +28,7 @@ function H_grad(x::ComplexF64, y::ComplexF64,
         #compute_wz_fields(coord,i,j,x,y)
 
         d1 = 1 + w1*z1
+        inv_d1 = inv(d1)
 
         if lattice isa SquareLattice
             for (di, dj, J) in ((1,0,J1),(0,1,J1),(1,1,J2),(1,-1,J2),(2,0,J3),(0,2,J3))
@@ -37,16 +38,17 @@ function H_grad(x::ComplexF64, y::ComplexF64,
                     w2, z2, dw2, dz2 = w[kk,ll], z[kk,ll], dw[kk,ll], dz[kk,ll]
 
                     d2 = 1 + w2*z2
+                    inv_d2 = inv(d2)
 
-                    t1 = dw1 * (z2 - z1*z1*w2 - z1*(1 - w2*z2)) / d1
-                    t2 = dw2 * (z1 - z2*z2*w1 - z2*(1 - w1*z1)) / d2
+                    t1 = dw1 * (z2 - z1*z1*w2 - z1*(1 - w2*z2)) * inv_d1
+                    t2 = dw2 * (z1 - z2*z2*w1 - z2*(1 - w1*z1)) * inv_d2
 
                     inv_d12 = -2J / (d1*d2)
 
                     dHdx += inv_d12 * (t1 + t2)
 
-                    t1 = dz1 * (w2 - w1*w1*z2 - w1*(1 - z2*w2)) / d1
-                    t2 = dz2 * (w1 - w2*w2*z1 - w2*(1 - z1*w1)) / d2
+                    t1 = dz1 * (w2 - w1*w1*z2 - w1*(1 - z2*w2)) * inv_d1
+                    t2 = dz2 * (w1 - w2*w2*z1 - w2*(1 - z1*w1)) * inv_d2
 
                     dHdy += inv_d12 * (t1 + t2)
                 end
@@ -59,31 +61,40 @@ function H_grad(x::ComplexF64, y::ComplexF64,
                     w2, z2, dw2, dz2 = w[kk,ll], z[kk,ll], dw[kk,ll], dz[kk,ll]
 
                     d2 = 1 + w2*z2
+                    inv_d2 = inv(d2)
 
-                    t1 = dw1 * (z2 - z1*z1*w2 - z1*(1 - w2*z2)) / d1
-                    t2 = dw2 * (z1 - z2*z2*w1 - z2*(1 - w1*z1)) / d2
+                    t1 = dw1 * (z2 - z1*z1*w2 - z1*(1 - w2*z2)) * inv_d1
+                    t2 = dw2 * (z1 - z2*z2*w1 - z2*(1 - w1*z1)) * inv_d2
 
                     inv_d12 = -2J / (d1*d2)
 
                     dHdx += inv_d12 * (t1 + t2)
 
-                    t1 = dz1 * (w2 - w1*w1*z2 - w1*(1 - z2*w2)) / d1
-                    t2 = dz2 * (w1 - w2*w2*z1 - w2*(1 - z1*w1)) / d2
+                    t1 = dz1 * (w2 - w1*w1*z2 - w1*(1 - z2*w2)) * inv_d1
+                    t2 = dz2 * (w1 - w2*w2*z1 - w2*(1 - z1*w1)) * inv_d2
 
                     dHdy += inv_d12 * (t1 + t2)
                 end
             end
         end
 
-        n_z  = (1 - w1*z1) / d1
+        n_z  = (1 - w1*z1) * inv_d1
 
         inv_d1_sq = inv(d1*d1)
 
-        dn_z = -2*z1 * inv_d1_sq * dw1
-        dHdx += -B[i,j]*dn_z - 2K*n_z*dn_z
+        # compute the d/dw derivative
+        dn_x = (1-z1*z1) * inv_d1_sq
+        dn_y = -im * (1+z1*z1) * inv_d1_sq
+        dn_z = -2*z1 * inv_d1_sq
 
-        dn_z = -2*w1 * inv_d1_sq * dz1
-        dHdy += -B[i,j]*dn_z - 2K*n_z*dn_z
+        dHdx += ( -(B[1,i,j]*dn_x + B[2,i,j]*dn_y + B[3,i,j]*dn_z) - 2K*n_z*dn_z ) * dw1
+
+        # compute the d/dz derivative
+        dn_x = (1-w1*w1) * inv_d1_sq
+        dn_y = -im * (-1+w1*w1) * inv_d1_sq
+        dn_z = -2*w1 * inv_d1_sq
+
+        dHdy += ( -(B[1,i,j]*dn_x + B[2,i,j]*dn_y + B[3,i,j]*dn_z) - 2K*n_z*dn_z ) * dz1
     end
 
     return dHdx,dHdy

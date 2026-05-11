@@ -133,7 +133,7 @@ function anneal!(n::Array{Float64, 3}, system::System;
                 end
             end
             # account for the external field and the anisotropy
-            dE += -B[i,j] * ds[3]
+            dE += - ( B[1,i,j]*ds[1] + B[2,i,j]*ds[2]  + B[3,i,j]*ds[3] )
             dE += -K* (s2[3]*s2[3] - s1[3]*s1[3])
 
             # decide whether to perform a Metropolis step

@@ -10,7 +10,9 @@ function compute_descent_gradient!(g::Array{Float64,3}, n::Array{Float64,3}, sys
     @inbounds for j=1:ny, i=1:nx
 
         # external field
-        g[3,i,j] += B[i,j]
+        g[1,i,j] += B[1,i,j]
+        g[2,i,j] += B[2,i,j]
+        g[3,i,j] += B[3,i,j]
         # anisotropy
         g[3,i,j] += 2*K*n[3,i,j]
 
