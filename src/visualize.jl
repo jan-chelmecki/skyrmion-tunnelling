@@ -137,6 +137,6 @@ end
 
 function describe_collective_coordinate(system::System, coord::CollectiveCoordinate; xmin, xmax, N_points = 15, levels=25)
     show_double_well(system,coord, xmin=xmin, xmax=xmax)
-    show_energy_contours(system,coord, xmin=xmin, xmax=xmax, N_points=75)
+    show_energy_contours(system,coord, xmin=xmin, xmax=xmax, N_points=N_points, levels=levels)
     show_velocity_field(system,coord, xmin=xmin, xmax=xmax)
 end
