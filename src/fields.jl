@@ -115,6 +115,69 @@ function local_B_field(lattice::LatticeType; B_centre, B_inf, radius, relax_leng
     return B 
 end
 
+function dipole_B_field(lattice::LatticeType; B0, h, B_inf=0.0)
+    X,Y = XY_meshgrid(lattice)
+    rho2 = X.^2 + Y.^2
+    R = sqrt.( h^2 .+ rho2 ) # distance to the dipole in 3d
+    r_hat = zeros(3)
+
+    m = 0.5 * (B0-B_inf) *h^3
+
+    B = zeros(3,lattice.nx, lattice.ny)
+    for j=1:lattice.ny, i=1:lattice.nx
+        r = R[i,j]
+        r_hat[1] = X[i,j] / r
+        r_hat[2] = Y[i,j] / r
+        r_hat[3] = h / r
+
+        m_r_hat = m*r_hat[3]
+
+        B[1,i,j] = (3*m_r_hat * r_hat[1]) / r^3
+        B[2,i,j] = (3*m_r_hat * r_hat[2]) / r^3
+        B[3,i,j] = (3*m_r_hat * r_hat[3] - m) / r^3 + B_inf
+    end
+    return B
+end
+
+function rotational_B_field(lattice::LatticeType; B_max, B_inf, radius)
+    X,Y = XY_meshgrid(lattice)
+    R = sqrt.( X.^2 + Y.^2 )
+    B_strength = B_max * (R/radius) .* exp.(-R/radius)
+
+
+    B = zeros(3,lattice.nx, lattice.ny)
+    B[1,:,:] = -Y./R .* B_strength
+    B[2,:,:] = X./R .* B_strength
+    B[3,:,:] .= B_inf
+
+    return B
+end
+
+function butterfly_B(lattice::LatticeType; B1, B2, Bperp, Binf, phi1, phi2, radius_relax, radius_Sk, B_defect=0.0)
+    X,Y = XY_meshgrid(lattice)
+    R = sqrt.( X.^2 + Y.^2 )
+    phi = similar(X)
+    for j=1:lattice.ny, i=1:lattice.nx
+        if Y[i,j] > 0
+            phi[i,j] = acos(X[i,j]/R[i,j])
+        else
+            phi[i,j] = 2pi - acos(X[i,j]/R[i,j])
+        end
+    end
+
+    fR = exp.( - (R .- radius_Sk).^2 / radius_relax^2 )
+
+
+    B = zeros(3,lattice.nx, lattice.ny)
+    B[1,:,:] = fR .* Bperp .* cos.(2*phi) 
+    B[2,:,:] = fR .* Bperp .* (-sin(2*phi))
+    B[3,:,:] = fR .* (B1*cos.(phi .+ phi1) + B2*cos.(2*phi .+ phi2)) .+ Binf
+
+    B[3, div(lattice.nx,2), div(lattice.ny,2)] += -B_defect
+
+    return B
+end
+
 # stereographic projection
 function w_project(n::Array{Float64,3})
     nx, ny = size(n, 2), size(n, 3)

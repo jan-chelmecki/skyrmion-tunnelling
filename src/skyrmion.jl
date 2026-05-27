@@ -1,4 +1,4 @@
-function skyrmion_ansatz(system::System; radius = 2.0, relax_length = 2.0)
+function skyrmion_ansatz(system::System; radius = 2.0, relax_length = 2.0, topological_charge=1, helicity=0.0)
     @unpack_lattice system
     X,Y = XY_meshgrid(lattice)
     R = sqrt.(X.^2 .+ Y.^2)
@@ -9,11 +9,16 @@ function skyrmion_ansatz(system::System; radius = 2.0, relax_length = 2.0)
     n[1, :, :] .= sin.(theta) .* X ./ R
     n[2, :, :] .= sin.(theta) .* Y ./ R
     n[3, :, :] .= cos.(theta)
-    return n
+
+    if topological_charge==1
+        return rotate_around_z(n, helicity)
+    elseif topological_charge==-1
+        return rotate_around_z(reflect_y(n), helicity)
+    end
 end
 
-function skyrmion(system::System; show_result = true, annealing = true, LLG_relax = true, N_steps=10000)
-    n = skyrmion_ansatz(system, radius=2.0, relax_length=2.0) # empirically, I know this works quite well 
+function skyrmion(system::System; show_result = true, annealing = true, LLG_relax = true, N_steps=10000, topological_charge=1, helicity=0.0)
+    n = skyrmion_ansatz(system, radius=2.0, relax_length=2.0, topological_charge=topological_charge, helicity=helicity) # empirically, I know this works quite well 
     if annealing
         anneal!(n, system, alpha=0.96, T0=1e-3,T_minimal=1e-20,printing=false)
     end
@@ -27,7 +32,7 @@ function skyrmion(system::System; show_result = true, annealing = true, LLG_rela
     return n
 end
 
-function skyrmion_size(n::Array{Float64, 3})
+function skyrmion_area(n::Array{Float64, 3})
     return sum( 1 .- n[3,:,:])
 end
 

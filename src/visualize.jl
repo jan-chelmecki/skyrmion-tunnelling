@@ -1,3 +1,5 @@
+# skyrmion visualization
+
 function show_nz(n,lattice::LatticeType)
     X,Y = XY_meshgrid(lattice)
     nz = n[3,:,:] 
@@ -15,28 +17,52 @@ function show_topological_charge(n,lattice::LatticeType)
     label=false,aspect_ratio=:equal, title="Topological charge density")
     display(P)
 end
-
-function in_plane_quiver(n,lattice::LatticeType)
+"""
+function in_plane_quiver(n,lattice::LatticeType, xlims=(-5,5))
     X,Y = XY_meshgrid(lattice)
-    quiver(X,Y,quiver=(n[1,:,:],n[2,:,:]), xlabel="x", ylabel="y", aspect_ratio=:equal,color="gray") #xlims=(minimum(X),maximum(X)))
+    c = n[3,:,:]
+    c = [c,c]'
+    quiver(X,Y,quiver=(n[1,:,:],n[2,:,:]), xlabel="x", ylabel="y", aspect_ratio=:equal,color="gray", xlims=xlims, ylims=xlims, line_z=repeat([c...], inner=2), c=:coolwarm)
+end
+"""
+
+function in_plane_quiver(n,lattice::LatticeType, xlims=(-5,5))
+    X,Y = XY_meshgrid(lattice)
+    x, y = vec(X), vec(Y)
+    dx, dy = vec(n[1,:,:]), vec(n[2,:,:])
+    c = vec(n[3,:,:])
+    c = [c c]'
+    Q = quiver(x,y,quiver=(dx,dy),line_z=repeat([c...], inner=2), c=:coolwarm, clims=(-1,1), xlims=(-5,5), ylims=(-5,5), aspect_ratio=:equal,
+            arrow=Plots.arrow(:closed, :head, 0.01, 0.01))
+    display(Q)
 end
 
-function three_dee_quiver(n,lattice::LatticeType)
+
+function three_dee_quiver(n,lattice::LatticeType; camera=(37,30))
         X,Y = XY_meshgrid(lattice)
         Z  = zeros(X.size)
         lim = min(maximum(Y),5)
         x, y, z = vec(X), vec(Y), vec(Z)
         u, v, w = vec(n[1,:,:]),vec(n[2,:,:]),vec(n[3,:,:])
         scale = 1.4
+        c = vec(n[3,:,:])
+        c = [c c]'
         quiver(x,y,z, quiver= (u/scale,v/scale,w/scale) , 
                 xlims = (-lim, lim),
                 ylims = (-lim, lim),
                 zlims = (-lim, lim),
-                camera = (37,30), # (azimuth, elevation)
+                camera = camera, # (azimuth, elevation)
                 size=(900,600),
                 margin = 2Plots.mm,
                 xlabel="x", ylabel="y", aspect_ratio=:equal,
-                title="View near the centre of the lattice")
+                title="View near the centre of the lattice",
+                line_z=repeat([c...], inner=2), c=:balance, clims=(-1,1),
+                arrow=Plots.arrow(:closed, :head, 0.01, 0.01, 0.01))
+end
+
+function plot_radial_profile(n,lattice::LatticeType)
+    X,Y = XY_meshgrid(lattice)
+    P = plot()
 end
 
 # --- collective coordinates and instantons

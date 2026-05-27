@@ -81,7 +81,11 @@ function H_grad(x::ComplexF64, y::ComplexF64,
         n_z  = (1 - w1*z1) * inv_d1
 
         inv_d1_sq = inv(d1*d1)
-
+        """
+        ny = -im*(w1 - z1) /(1+w1*z1)
+        dny/dw = -im* (1+wz - (w-z)*z)/...
+        dny/dz = -im* (-1*(1+wz) - (w-z)*w)
+        """
         # compute the d/dw derivative
         dn_x = (1-z1*z1) * inv_d1_sq
         dn_y = -im * (1+z1*z1) * inv_d1_sq
@@ -91,7 +95,7 @@ function H_grad(x::ComplexF64, y::ComplexF64,
 
         # compute the d/dz derivative
         dn_x = (1-w1*w1) * inv_d1_sq
-        dn_y = -im * (-1+w1*w1) * inv_d1_sq
+        dn_y = im * (1+w1*w1) * inv_d1_sq
         dn_z = -2*w1 * inv_d1_sq
 
         dHdy += ( -(B[1,i,j]*dn_x + B[2,i,j]*dn_y + B[3,i,j]*dn_z) - 2K*n_z*dn_z ) * dz1

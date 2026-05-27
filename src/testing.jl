@@ -12,14 +12,19 @@ end
     return lattice_geometry(nx,ny)::LatticeType
 end
 
-function random_params(lattice::LatticeType; B_max = 0.6, J3_to_zero = false)
+function random_params(lattice::LatticeType; B_max = 0.6, J3_to_zero = false, B_uniform = false)
     J1 = 1.0
     J2 = - random_uniform(0.2, 0.6)
     J3 = - random_uniform(0.05, 0.20)
     J3 = J3_to_zero ? 0.0 : J3
     K = random_uniform(-0.1, 0.4)
     B_val = random_uniform(0.0, B_max)
-    B = uniform_B(B_val, lattice)
+    if B_uniform
+        B = uniform_B(B_val, lattice)
+    else
+        B = randn(3, lattice.nx, lattice.ny)
+        B[3,:,:] .+= B_val
+    end
     return HamiltonianParameters(J1,J2,J3,K,B)
 end
 
@@ -60,7 +65,7 @@ function test_energy_functional()
     # check Sz invariance
     valid = true
     for lattice in testing_lattice, boundary in testing_boundary
-        params = random_params(lattice)
+        params = random_params(lattice, B_uniform=true)
         system = System(params,lattice,boundary)
 
         n1 = random_configuration(lattice)
