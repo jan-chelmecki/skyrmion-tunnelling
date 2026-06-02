@@ -108,7 +108,7 @@ function wzdwdz(x,y,lattice::LatticeType,coord::CollectiveCoordinate)
     return w, z, dw, dz
 end
 
-function n(x,lattice::LatticeType,coord::CollectiveCoordinate)
+function n_collective(x,lattice::LatticeType,coord::CollectiveCoordinate)
     w,z = wz(x, conj(x), lattice, coord)
     return n_vector(w)
 end

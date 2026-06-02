@@ -26,14 +26,14 @@ function in_plane_quiver(n,lattice::LatticeType, xlims=(-5,5))
 end
 """
 
-function in_plane_quiver(n,lattice::LatticeType, xlims=(-5,5))
+function in_plane_quiver(n,lattice::LatticeType; xlims=(-5,5))
     X,Y = XY_meshgrid(lattice)
     x, y = vec(X), vec(Y)
     dx, dy = vec(n[1,:,:]), vec(n[2,:,:])
     c = vec(n[3,:,:])
     c = [c c]'
-    Q = quiver(x,y,quiver=(dx,dy),line_z=repeat([c...], inner=2), c=:coolwarm, clims=(-1,1), xlims=(-5,5), ylims=(-5,5), aspect_ratio=:equal,
-            arrow=Plots.arrow(:closed, :head, 0.01, 0.01))
+    Q = quiver(x,y,quiver=(dx,dy),line_z=repeat([c...], inner=2), c=:coolwarm, clims=(-1,1), xlims=xlims, ylims=xlims, aspect_ratio=:equal,
+            arrow=Plots.arrow(:closed, :head, 0.01, 0.01), xlabel=L"x", ylabel=L"y")
     display(Q)
 end
 
@@ -60,9 +60,18 @@ function three_dee_quiver(n,lattice::LatticeType; camera=(37,30))
                 arrow=Plots.arrow(:closed, :head, 0.01, 0.01, 0.01))
 end
 
-function plot_radial_profile(n,lattice::LatticeType)
+function show_tail(n,lattice::LatticeType)
+    (i0,j0) = argmin(n[3,:,:]).I
     X,Y = XY_meshgrid(lattice)
-    P = plot()
+    x0 = X[i0,j0]; y0 = Y[i0,j0]
+    X .= X .-x0
+    Y .= Y .-y0
+    R = sqrt.(X.^2 + Y.^2)
+    P = plot(xlabel=L"r", ylabel=L"\cos \theta", title="Radial profile of the skyrmion")
+    #plot!(P, R[i0,j0:1:end],n[3,i0,j0:1:end],xlims=(0,10), ls=:dash)
+    plot!(P, R[i0:1:end,j0],n[3,i0:1:end,j0],xlims=(0,10), ls=:dash)
+    plot!(P, [0,10], [1,1], ls=:dot, color=:red, label=false)
+    display(P)
 end
 
 # --- collective coordinates and instantons
