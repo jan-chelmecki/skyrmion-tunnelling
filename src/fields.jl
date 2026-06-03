@@ -62,6 +62,11 @@ function metric_distance(n1::Array{Float64,3},n2::Array{Float64,3})
     return sqrt(max)
 end
 
+function perturb!(n; amp)
+    n .= n + amp*randn(n.size)
+    normalize!(n)
+end
+
 function random_configuration(lattice::LatticeType)
     n = randn((3,lattice.nx,lattice.ny))
     normalize!(n)

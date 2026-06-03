@@ -13,7 +13,10 @@ struct AlphaCoordinate{T} <: CollectiveCoordinate
     u::T
     v::T
 end
-
+"""
+The functions below get used in the hot loops so they have to be super optimized 
+Hence the weird algebra. cf the slides for a cleaner presentation.
+"""
 @inline function compute_wz_fields(coord::LambdaCoordinate, i, j, lambda, lambda_bar)
     w0ij = coord.w0[i,j]
     a = real(w0ij)
