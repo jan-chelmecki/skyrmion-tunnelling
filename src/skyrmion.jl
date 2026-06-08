@@ -1,3 +1,30 @@
+function crop_to_skyrmion!(n, system::System; patch_size=4)
+    i0,j0 = argmin(n[3,:,:]).I
+    @unpack_lattice(system)
+    for j=1:ny, i=1:nx
+        if min(abs(i-i0), (nx-abs(i-i0))) > patch_size || min(abs(j-j0), ny-abs(j-j0)) > patch_size
+            n[1,i,j] = 0.0
+            n[2,i,j] = 0.0
+            n[3,i,j] = 1.0
+        end
+    end
+end 
+
+function centre_skyrmion!(n,system::System)
+    @unpack_lattice(system)
+
+    i0,j0 = argmin(n[3,:,:]).I
+    i1 = div(nx+2,2); j1 = div(ny+2,2)
+
+    n0 = copy(n)
+    for j=1:ny,i=1:nx
+        n[:, mod1(i1+i, nx), mod1(j1+j, ny)] .= n0[:, mod1(i0+i,nx), mod1(j0+j,ny)]
+    end
+end
+
+
+
+
 function skyrmion_ansatz(system::System; radius = 2.0, relax_length = 2.0, topological_charge=1, helicity=0.0)
     @unpack_lattice system
     X,Y = XY_meshgrid(lattice)
@@ -16,7 +43,7 @@ function skyrmion_ansatz(system::System; radius = 2.0, relax_length = 2.0, topol
         return rotate_around_z(reflect_y(n), helicity)
     end
 end
-
+"""
 function skyrmion(system::System; show_result = true, annealing = true, LLG_relax = true, N_steps=10000, topological_charge=1, helicity=0.0)
     n = skyrmion_ansatz(system, radius=2.0, relax_length=2.0, topological_charge=topological_charge, helicity=helicity) # empirically, I know this works quite well 
     if annealing
@@ -31,7 +58,7 @@ function skyrmion(system::System; show_result = true, annealing = true, LLG_rela
     end
     return n
 end
-
+"""
 function skyrmion_area(n::Array{Float64, 3})
     return sum( 1 .- n[3,:,:])
 end

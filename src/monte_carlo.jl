@@ -69,7 +69,7 @@ function shuffle_sites!(sites::Matrix{Int})
 end
 
 function anneal!(n::Array{Float64, 3}, system::System; 
-    T0::Float64 = 5.0, alpha::Float64 = 0.98, steps_per_T::Int = 1000, epsilon::Float64 = 0.2, max_iterations::Int = 10000, T_minimal::Float64 = 1e-4, printing::Bool=false,
+    T0::Float64 = 5.0, alpha::Float64 = 0.98, steps_per_T::Int = 1000, epsilon::Float64 = 0.2, max_iterations::Int = 1000000, T_minimal::Float64 = 1e-4, printing::Bool=false,
     zero_temperature::Bool = false)
 
     @unpack_system system

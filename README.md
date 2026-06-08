@@ -6,8 +6,8 @@ H = - \sum_{i,j} J_{i,j} S_i S_j - K \sum_i (S_i^{(z)})^2 - h \sum S_i^{(z)}
 $$
 (cf. notebook 1). The collective coordinate is an abstraction (computationally efficient) I pass to an imaginary time RK4 solver. To avoid complicated shooting, I use energy conservation explicitely. I find some point which has the same energy as the skyrmion (or some other saddle) after which I integrate forward and backward in time and glue the solutions together.
 
-A basic workflow is
-model --> MCMC/LLG --> textures --> collective coordinates --> time integration --> instantons and action
+A typical workflow is
+model --> MCMC/LLG --> stable topological textures --> collective coordinates --> time integration --> instantons and action
 
 # Practical remarks
 I aimed for high performance, so I ensure type stability and do not allocate memory unless necessary.

@@ -80,6 +80,8 @@ end
 function coordinate_label(coord::CollectiveCoordinate)
     if coord isa LambdaCoordinate
         return L"$\lambda$", L"$\bar{\lambda}$"
+    elseif coord isa KappaCoordinate
+        return L"$\kappa$", L"$\bar{\kappa}$"
     elseif coord isa EtaCoordinate
         return L"$\eta$", L"$\bar{\eta}$"
     elseif coord isa AlphaCoordinate

@@ -2,6 +2,10 @@ struct LambdaCoordinate{T} <: CollectiveCoordinate
     w0::T
 end
 
+struct KappaCoordinate{T} <: CollectiveCoordinate
+    w0::T
+end
+
 struct EtaCoordinate{T} <: CollectiveCoordinate
     up::T
     um::T
@@ -27,6 +31,18 @@ Hence the weird algebra. cf the slides for a cleaner presentation.
     dz = -im*b
     return w, z, dw, dz
 end
+
+@inline function compute_wz_fields(coord::KappaCoordinate, i, j, kappa, kappa_bar)
+    w0ij = coord.w0[i,j]
+    a = real(w0ij)
+    b = imag(w0ij)
+    w  = a*kappa^2 + im*b*kappa
+    z  = a*kappa_bar^2 - im*b*kappa_bar
+    dw = 2*a*kappa + im*b
+    dz = 2*a*kappa_bar - im*b
+    return w, z, dw, dz
+end
+
 
 @inline function compute_wz_fields(coord::EtaCoordinate, i, j, eta, eta_bar)
     up = coord.up[i,j]
