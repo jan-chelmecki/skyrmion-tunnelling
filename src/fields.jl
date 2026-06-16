@@ -107,6 +107,7 @@ function uniform_B(B_val,lattice::LatticeType)
 end
 
 function local_B_field(lattice::LatticeType; B_centre, B_inf, radius, relax_length)
+    nx = lattice.nx; ny = lattice.ny
     X,Y = XY_meshgrid(lattice)
     R = sqrt.(X.^2 + Y.^2)
     B = zeros(3,lattice.nx, lattice.ny)

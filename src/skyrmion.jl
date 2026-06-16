@@ -1,3 +1,5 @@
+# -------------- sampling 'from the wild' ---------------------------------------------------------
+
 function crop_to_skyrmion!(n, system::System; patch_size=4)
     i0,j0 = argmin(n[3,:,:]).I
     @unpack_lattice(system)
@@ -14,13 +16,115 @@ function centre_skyrmion!(n,system::System)
     @unpack_lattice(system)
 
     i0,j0 = argmin(n[3,:,:]).I
-    i1 = div(nx+2,2); j1 = div(ny+2,2)
+    i1 = div(nx+1,2); j1 = div(ny+1,2)
 
     n0 = copy(n)
     for j=1:ny,i=1:nx
         n[:, mod1(i1+i, nx), mod1(j1+j, ny)] .= n0[:, mod1(i0+i,nx), mod1(j0+j,ny)]
     end
 end
+
+function sample_skyrmion(system::System; expected_max_radius=5, N_steps=1000, annealing_rate=0.99)
+    @unpack_system(system)
+    n = random_configuration(lattice)
+    anneal!(n, system, alpha=annealing_rate, T0=5.0,T_minimal=1e-8,printing=false)
+    crop_to_skyrmion!(n, system, patch_size=expected_max_radius)
+    relax!(n, system, dt=0.2, N_steps=N_steps, adaptive_dt=true, dt_min=1e-20, graph=false, silent=true)
+    centre_skyrmion!(n,system)
+    show_nz(n, lattice)
+    return n
+end
+
+# --------------------------- tails, symmetry and ansatze -----------------------------
+
+function azimuthal_angle(x::Float64,y::Float64)
+    r = sqrt(x^2+y^2)
+    if y >= 0
+        return acos(x/r)
+    else 
+        return 2pi-acos(x/r)
+    end
+end
+
+
+function show_profiles(n,lattice::LatticeType)
+    nx = lattice.nx; ny = lattice.ny
+
+    X,Y = XY_meshgrid(lattice)
+
+    R = sqrt.( X.^2 + Y.^2 )
+    Theta = acos.( n[3,:,:] )
+    P = plot()
+    scatter!(P,vec(R), vec(Theta), label=false, markersize=2.0, xlabel=L"R", ylabel=L"\theta")
+    plot!(P, [0,maximum(R)], [0,0], color=:lightblue, ls=:dash, label=false, title=L"\theta(r)"* " profile")
+    display(P)
+
+    VarPhi = [] # angle describing position
+    Phi = [] # the azimuthal angle of the spin
+    for j=1:ny, i=1:nx
+        if n[3,i,j] > -0.9 && n[3,i,j] < 0.9 # the azimuth is ill-defined at poles so we exclude points with nz = +1, -1
+            push!(VarPhi, azimuthal_angle(X[i,j], Y[i,j]))
+            push!(Phi, azimuthal_angle(n[1,i,j], n[2,i,j]))
+        end
+    end
+    P = plot()
+    scatter!(P,VarPhi/2pi, Phi/2pi, label=false, markersize=2.0, xlabel=L"\varphi/2\pi", ylabel=L"\phi/2\pi", title = L"\phi(\varphi)"*" profile", 
+        aspect_ratio=:equal, xlims=(0,1))
+    #plot!(P, [0,maximum(R)], [0,0], color=:lightblue, ls=:dash, label=false)
+    display(P)
+
+end
+
+function symmetrise!(n, lattice::LatticeType)
+    """
+    impose zero helicity, positive topological charge and a well-defined theta profile
+    """
+    X,Y = XY_meshgrid(lattice)
+
+    # ----------------- regularize theta(r) dependence -------------------------------------
+    R = sqrt.(X.^2 + Y.^2)
+
+    # group the lattice points by their R values
+    Rvec = vec(R)
+    perm = sortperm(Rvec)
+
+    tol = 1e-10
+
+    index_groups = Vector{Vector{Int}}()
+    current_group = [perm[1]]
+
+    for p in perm[2:end]
+        if isapprox(Rvec[p], Rvec[current_group[1]]; atol=tol, rtol=0) # still in the same group, add the element
+            push!(current_group, p)
+        else # moved to the new group
+            push!(index_groups, current_group) # save the previous group
+            current_group = [p] # and start a new one
+        end
+    end
+    push!(index_groups, current_group)
+    cartesian_groups = [CartesianIndices(R)[g] for g in index_groups]
+
+    # average nz over every R group
+    for group in cartesian_groups
+        nz_average = 0.0
+        for ind in group
+            nz_average += n[3,ind]
+        end
+        nz_average = nz_average / length(group)
+        for ind in group
+            n[3,ind] = nz_average
+        end
+    end
+
+    # ----------------- regularize phi(varphi) dependence -------------------------------------
+    for j=1:lattice.ny, i=1:lattice.nx
+        rho = sqrt(1 - n[3,i,j]^2)
+        n[1,i,j] = rho* X[i,j] / R[i,j]
+        n[2,i,j] = rho* Y[i,j] / R[i,j]
+    end
+end
+
+
 
 
 
@@ -43,7 +147,7 @@ function skyrmion_ansatz(system::System; radius = 2.0, relax_length = 2.0, topol
         return rotate_around_z(reflect_y(n), helicity)
     end
 end
-"""
+
 function skyrmion(system::System; show_result = true, annealing = true, LLG_relax = true, N_steps=10000, topological_charge=1, helicity=0.0)
     n = skyrmion_ansatz(system, radius=2.0, relax_length=2.0, topological_charge=topological_charge, helicity=helicity) # empirically, I know this works quite well 
     if annealing
@@ -58,7 +162,7 @@ function skyrmion(system::System; show_result = true, annealing = true, LLG_rela
     end
     return n
 end
-"""
+
 function skyrmion_area(n::Array{Float64, 3})
     return sum( 1 .- n[3,:,:])
 end

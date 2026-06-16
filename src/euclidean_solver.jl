@@ -268,7 +268,7 @@ function solve_ivp(x0, system::System, coord::CollectiveCoordinate; dt::Float64,
     sol = regularize_sol(sol)
     return sol
 end
-
+"""
 function solve_ivp_force_real(x0, system::System, coord::CollectiveCoordinate; dt::Float64, T)
     @unpack_system system
     u0 = zeros(ComplexF64,2)
@@ -279,7 +279,7 @@ function solve_ivp_force_real(x0, system::System, coord::CollectiveCoordinate; d
     sol = regularize_sol(sol)
     return sol
 end
-"""
+
 function M(x::ComplexF64,
             y::ComplexF64,
             nx::Int, ny::Int

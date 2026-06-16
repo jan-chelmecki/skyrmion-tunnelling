@@ -14,9 +14,9 @@ end
 
 # ----- continuous to discrete mapping
 
-function microscopic_couplings_for_lengthscale(lengthscale)
+function microscopic_couplings_for_length_scale(length_scale)
     J1 = 1.0 # re-absorbed into the energy scale
-    J2 = -3/2 * lengthscale^2 / (6*lengthscale^2 - 1) # solved via algebra
+    J2 = -3/2 * length_scale^2 / (6*length_scale^2 - 1) # solved via algebra
     J3 = 1/16 * (-J1+4*J2) # imposed by I3 = 0
     return J1, J2, J3
 end
@@ -33,9 +33,9 @@ function microscopic_from_continuum_non_dim(k,b; I1, I2)
     return K, B
 end
 
-function microscopic_system(;lengthscale, k, b, n_sites)
+function microscopic_system(;length_scale, k, b, n_sites)
     lattice = SquareLattice(n_sites, n_sites)
-    J1, J2, J3 = microscopic_couplings_for_lengthscale(lengthscale)
+    J1, J2, J3 = microscopic_couplings_for_length_scale(length_scale)
     I1, I2 = continuum_couplings(J1, J2, J3)
     K, B_micro = microscopic_from_continuum_non_dim(k, b, I1=I1, I2=I2)
     B = uniform_B(B_micro, lattice)
@@ -47,7 +47,7 @@ end
 
 
 
-# -------- multiscale sampling ------------------------
+# -------- multi_scale sampling ------------------------
 
 function double_the_resolution(n; add_one_line=false)
     nx = n.size[2]; ny = n.size[3]
@@ -68,14 +68,24 @@ function double_the_resolution(n; add_one_line=false)
     return n_new
 end
 
-function multiscale_sample(;lengthscale, k, b, n_sites, annealing_rate=0.998)
+function paste_in_bigger_lattice(n; new_nx)
+    nx = n.size[2]
+    n_new = zeros(3, new_nx, new_nx)
+    n_new[3,:,:] .= 1.0 # ferromagnetic
+    for j=1:nx, i=1:nx
+        n_new[:,i,j] .= n[:,i,j]
+    end
+    return n_new
+end
+
+function multi_scale_sample(;length_scale, k, b, n_sites, annealing_rate=0.998)
 
     l_acceptable_min = 1.5 # below this point, skyrmions would be too small to be stable
-    l_acceptable_max = 2*l_acceptable_min # on the flip side, the bigger the lengthscale, the lower the efficiency
+    l_acceptable_max = 2*l_acceptable_min # on the flip side, the bigger the length scale, the lower the efficiency
 
     size_list = Int[]
     remainder_list = Bool[]
-    l = lengthscale
+    l = length_scale
     while l>l_acceptable_max
         l *= 0.5
         push!(size_list, n_sites)
@@ -90,7 +100,7 @@ function multiscale_sample(;lengthscale, k, b, n_sites, annealing_rate=0.998)
 
     println("l initial = ", l)
 
-    system = microscopic_system(lengthscale=l, k=k, b=b, n_sites = n_sites)
+    system = microscopic_system(length_scale=l, k=k, b=b, n_sites = n_sites)
     describe_system(system)
     n = random_configuration(system.lattice)
     anneal!(n, system, alpha=annealing_rate, T0=5.0,T_minimal=1e-4,printing=false)
@@ -100,10 +110,10 @@ function multiscale_sample(;lengthscale, k, b, n_sites, annealing_rate=0.998)
     
     for ind=1:length(size_list)
         l *= 2
-        println("\nlengthscale = ",l)
+        println("\nlength scale = ",l)
         n = double_the_resolution(n, add_one_line=remainder_list[ind])
         
-        system = microscopic_system(lengthscale=l, k=k, b=b, n_sites = size_list[ind])
+        system = microscopic_system(length_scale=l, k=k, b=b, n_sites = size_list[ind])
         describe_system(system)
         perturb!(n, amp = 0.3)
         show_nz(n, system.lattice)

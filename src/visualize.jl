@@ -39,25 +39,25 @@ end
 
 
 function three_dee_quiver(n,lattice::LatticeType; camera=(37,30))
-        X,Y = XY_meshgrid(lattice)
-        Z  = zeros(X.size)
-        lim = min(maximum(Y),5)
-        x, y, z = vec(X), vec(Y), vec(Z)
-        u, v, w = vec(n[1,:,:]),vec(n[2,:,:]),vec(n[3,:,:])
-        scale = 1.4
-        c = vec(n[3,:,:])
-        c = [c c]'
-        quiver(x,y,z, quiver= (u/scale,v/scale,w/scale) , 
-                xlims = (-lim, lim),
-                ylims = (-lim, lim),
-                zlims = (-lim, lim),
-                camera = camera, # (azimuth, elevation)
-                size=(900,600),
-                margin = 2Plots.mm,
-                xlabel="x", ylabel="y", aspect_ratio=:equal,
-                title="View near the centre of the lattice",
-                line_z=repeat([c...], inner=2), c=:balance, clims=(-1,1),
-                arrow=Plots.arrow(:closed, :head, 0.01, 0.01, 0.01))
+    gr()
+    X,Y = XY_meshgrid(lattice)
+    Z  = zeros(X.size)
+    lim = min(maximum(Y),5)
+    x, y, z = vec(X), vec(Y), vec(Z)
+    u, v, w = vec(n[1,:,:]),vec(n[2,:,:]),vec(n[3,:,:])
+    scale = 1.4
+    c = vec(n[3,:,:])
+    c = [c c]'
+    quiver(x,y,z, quiver= (u/scale,v/scale,w/scale) , 
+            xlims = (-lim, lim),
+            ylims = (-lim, lim),
+            zlims = (-lim, lim),
+            camera = camera, # (azimuth, elevation)
+            size=(900,600),
+            margin = 2Plots.mm,
+            xlabel="x", ylabel="y", aspect_ratio=:equal,
+            title="View near the centre of the lattice",
+            line_z=repeat([c...], inner=2), c=:balance, clims=(-1,1))
 end
 
 function show_tail(n,lattice::LatticeType)
@@ -70,7 +70,7 @@ function show_tail(n,lattice::LatticeType)
     P = plot(xlabel=L"r", ylabel=L"\cos \theta", title="Radial profile of the skyrmion")
     #plot!(P, R[i0,j0:1:end],n[3,i0,j0:1:end],xlims=(0,10), ls=:dash)
     plot!(P, R[i0:1:end,j0],n[3,i0:1:end,j0],xlims=(0,10), ls=:dash)
-    plot!(P, [0,10], [1,1], ls=:dot, color=:red, label=false)
+    plot!(P, [0,10], [1,1], ls=:dot, colour=:red, label=false)
     display(P)
 end
 
@@ -93,7 +93,7 @@ function check_if_imaginary(matrix)
     imaginary = maximum(abs.(imag.(matrix)))
     println("Imaginary part = $imaginary")
     if imaginary > 1e-5
-        println("WARNING ----> imaginary part is nonzero !!!!! ---------> It gets neglected via a real projection")
+        println("WARNING ----> imaginary part is non-zero !!!!! ---------> It gets neglected via a real projection")
     end
 end
 
@@ -125,7 +125,7 @@ function show_double_well_in_complex_plane(system::System, coord::CollectiveCoor
     x,xbar = coordinate_label(coord)
 
     xlims = (xmin, xmax)
-    P = contour(X,X,real.(H_vals),aspect_ratio=:equal,xlims=xlims,ylims=xlims, color=:coolwarm,
+    P = contour(X,X,real.(H_vals),aspect_ratio=:equal,xlims=xlims,ylims=xlims, colour=:coolwarm,
             xlabel="Re"*x,ylabel="Im"*x,title="Energy landscape in the physical manifold", levels=levels)
     display(P)
 end
@@ -143,7 +143,7 @@ function show_energy_contours(system::System, coord::CollectiveCoordinate; xmin,
     x,xbar = coordinate_label(coord)
 
     xlims = (xmin, xmax)
-    P = contour(X,X,real.(H_vals),aspect_ratio=:equal,xlims=xlims,ylims=xlims, color=:coolwarm,
+    P = contour(X,X,real.(H_vals),aspect_ratio=:equal,xlims=xlims,ylims=xlims, colour=:coolwarm,
             xlabel=x,ylabel=xbar,title="Energy landscape for Euclidean Dynamics", levels=levels)
     display(P)
 end
@@ -167,13 +167,32 @@ function show_velocity_field(system::System, coord::CollectiveCoordinate; xmin, 
     x,xbar = coordinate_label(coord)
 
     xlims = (xmin-0.1, xmax+0.1)
-    P = quiver(X,Y,quiver=(real.(V[1,:,:]/scale),real.(V[2,:,:]/scale)),aspect_ratio=:equal, color = "gray", xlims=xlims, ylims=xlims,
+    P = quiver(X,Y,quiver=(real.(V[1,:,:]/scale),real.(V[2,:,:]/scale)),aspect_ratio=:equal, colour = "gray", xlims=xlims, ylims=xlims,
         xlabel = x, ylabel=xbar, title="Euclidean dynamics velocity field")
     display(P)
 end
 
-function describe_collective_coordinate(system::System, coord::CollectiveCoordinate; xmin, xmax, N_points = 15, levels=25)
+function describe_collective_coordinate(system::System, coord::CollectiveCoordinate; xmin=-1.3, xmax=1.3, N_points = 15, levels=25)
     show_double_well(system,coord, xmin=xmin, xmax=xmax)
     show_energy_contours(system,coord, xmin=xmin, xmax=xmax, N_points=N_points, levels=levels)
     show_velocity_field(system,coord, xmin=xmin, xmax=xmax)
+end
+
+
+# ------------------ instantonic solutions plots -----------------------------
+
+function show_trajectory_in_time(t,sol,coord::CollectiveCoordinate;xlims=(-1,1), title="")
+    P = plot(t,real.(sol[1,:]),label=L"Re$x$", title=title,xlabel=L"T")
+    plot!(t,real.(sol[2,:]),label=L"Re$y$")
+    plot!(t,imag.(sol[1,:]),label=L"Im$x$")
+    plot!(t,imag.(sol[2,:]),label=L"Im$y$")
+    display(P)
+end
+
+function show_trajectory_in_phase_space(sol,coord::CollectiveCoordinate;xlims=(-1,1), title="")
+    imaginary = maximum(abs.(imag.(sol)))
+    println("imaginary = ", imaginary)
+    Q = plot(real.(sol[1,:]),real.(sol[2,:]), xlabel=L"$x$",ylabel=L"$y$",aspect_ratio=:equal,xlims=xlims,ylims=xlims,label="instanton",
+            title=title)
+    display(Q)
 end

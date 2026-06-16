@@ -10,7 +10,7 @@ end
 
 function find_saddle(system::System,coord::CollectiveCoordinate; initial_guess, max_steps=1000)
     """
-    Gradient descent on H(x,conj(x)) where x in C (H is known to take real values there). Conjugation is not differntiable in the complex sense,
+    Gradient descent on H(x,conj(x)) where x in C (H is known to take real values there). Conjugation is not differentiable in the complex sense,
     so I have to resort to working with 2D real coordinates.
     """
     x = ComplexF64(initial_guess)
@@ -139,7 +139,7 @@ function minimize_1D(f, a0, b0; epsilon=1e-15 )
 end
 """
 
-function action(system, coord, sol; dt, show=true)
+function action(system::System, coord::CollectiveCoordinate, sol; dt, show=true)
     @unpack_lattice system
     N = sol.size[2]-1
     w = 0.0+0.0im; z = 0.0+0.0im; dw = 0.0+0.0im; dz = 0.0+0.0im; 
@@ -211,131 +211,15 @@ function instanton(system::System, coord::CollectiveCoordinate; x_init = 1.0, di
     # glue the solutions
     sol = hcat(sol_backward[:,end:-1:1], sol_forward)
 
-    t = pretty_time_axis(sol, dt=dt, T_total=T_forward+T_backward)
+    t = vec(pretty_time_axis(sol, dt=dt, T_total=T_forward+T_backward))
 
     imaginary = maximum(abs.(imag.(sol)))
-    
     println("imaginary = ", imaginary)
     if show
-        P = plot(t,real.(sol[1,:]),label=L"Re$x$", title="Instantonic trajectory",xlabel=L"T")
-        plot!(t,real.(sol[2,:]),label=L"Re$y$")
-        plot!(t,imag.(sol[1,:]),label=L"Im$x$")
-        plot!(t,imag.(sol[2,:]),label=L"Im$y$")
-        display(P)
-
-        Q = plot(real.(sol[1,:]),real.(sol[2,:]), xlabel=L"$x$",ylabel=L"$y$",aspect_ratio=:equal,xlims=xlims,ylims=xlims,label="instanton",
-                title="Instanton in the phase space (real projection)")
-        display(Q)
+        show_trajectory_in_time(t,sol,coord,xlims=xlims,title="Instantonic trajectory")
+        show_trajectory_in_phase_space(sol,coord,xlims=xlims,title="Instanton in the phase space (real projection)")
     end
     S_inst = action(system, coord, sol, dt=dt, show=show_action)
     return S_inst, sol
     # regularize if necessary
 end
-
-
-function instanton_force_real(system::System, coord::CollectiveCoordinate; x_init = 1.0, direction_guess, dt=0.01, T_forward=60.0, T_backward=20.0, show=true)
-    x_min = find_saddle(system,  coord, initial_guess = x_init)
-    #x_min = 1.0
-    H_inst = H(x_min,conj(x_min),system,coord)
-    println("The saddle point is at ", x_min)
-
-    x0, y0 = find_similar_energy(x_min, conj(x_min), system, coord, x_init = x_min+direction_guess[1], y_init=x_min+direction_guess[2])
-    H0 = H(x0, y0, system, coord)
-    println("The instantonic trajectory passes through the point \n x = ", x0, "\n y = ", y0)
-    println("sanity check : |H_inst-H0| = ", abs(H_inst-H0))
-
-    # The trajectory parting from thus found point is the instanton. Integrate it forward and backward in time.
-    u0 = [ComplexF64(x0),ComplexF64(y0)]
-
-    # forward integration
-    println("-- Integrating forwards -- ")
-    sol_forward = solve_ivp_force_real(u0, system, coord, dt=dt,T=T_forward)
-
-    # backward integration
-    println("-- Integrating backwards -- ")
-    sol_backward = solve_ivp_force_real(u0, system, coord, dt=-dt,T=T_backward)
-
-    # glue the solutions
-    sol = hcat(sol_backward[:,end:-1:1], sol_forward)
-
-    t = pretty_time_axis(sol, dt=dt, T_total=T_forward+T_backward)
-
-    imaginary = maximum(abs.(imag.(sol)))
-    println("imaginary = ", imaginary)
-    if show
-        P = plot(t,real.(sol[1,:]),label=L"Re$x$", title="Instantonic trajectory",xlabel=L"T")
-        plot!(t,real.(sol[2,:]),label=L"Re$y$")
-        plot!(t,imag.(sol[1,:]),label=L"Im$x$")
-        plot!(t,imag.(sol[2,:]),label=L"Im$y$")
-        display(P)
-
-        Q = plot(real.(sol[1,:]),real.(sol[2,:]), xlabel=L"$x$",ylabel=L"$y$",aspect_ratio=:equal,xlims=(-2,2),ylims=(-2,2),label="instanton",
-                title="Instanton in the phase space (real projection)")
-        display(Q)
-    end
-    S_inst = action(system, coord, sol, dt=dt, show=false)
-    return S_inst, sol
-    # regularize if necessary
-end
-
-
-"""
-function instanton(system::System, coord::CollectiveCoordinate; x_init = 1.0, pert = 0.05, dt=0.01, T_forward=60.0, T_backward=20.0, fixed="y", show=true)
-    # ---- > Given the mirror symmetry abound the diagonal, this comes down to minimizing a 1D function.
-    x_min = minimize_1D( x->real(H(x,x,system,coord)) , x_init-0.1, x_init+0.1, epsilon=1e-15)
-    H_inst = real(H(x_min,x_min,system,coord))
-    println("The saddle point is at ", x_min)
-    println("Now, let's fix the variable ", fixed, " at ", x_min +pert)
-    # A bit further away from that point, fix lambda_bar and vary lambda so that the energy is the same as in 1.
-    if fixed == "y"
-        # fix y
-        y0 = x_min + pert
-        x0 = minimize_1D(x -> abs( real(H(x,y0,system,coord))  - H_inst ), x_min-2*abs(pert), x_min+2*abs(pert))
-    else
-        # fix x
-        x0 = x_min + pert
-        y0 = minimize_1D(y -> abs( real(H(x0,y,system,coord))  - H_inst ), x_min-2*abs(pert), x_min+2*abs(pert))
-    end
-    println("|H_inst-H0| = ", H_inst-H(x0,y0,system,coord))
-    println("The instantonic trajectory passes through the point  x = ", x0, " y = ", y0)
-
-    # The trajectory parting from thus found point is the instanton. Integrate it forward and backward in time.
-    u0 = [x0,y0]
-
-    # forward integration
-    println("-- Integrating forwards -- ")
-    sol_forward = solve_ivp(u0, system, coord, dt=dt,T=T_forward)
-
-    # backward integration
-    println("-- Integrating backwards -- ")
-    sol_backward = solve_ivp(u0, system, coord, dt=-dt,T=T_backward)
-
-    # glue the solutions
-    sol = hcat(sol_backward[:,end:-1:1], sol_forward)
-
-    t = LinRange(0, T_backward+T_forward, size(sol,2))
-
-    imaginary = maximum(abs.(imag.(sol)))
-    println("imaginary = ", imaginary)
-    if show
-        P = plot(t,real.(sol[1,:]),label=L"", title="Instantonic trajectory",xlabel=L"T")
-        plot!(t,real.(sol[2,:]),label=L"")
-        display(P)
-
-        Q = plot(real.(sol[1,:]),real.(sol[2,:]), xlabel=L"",ylabel=L"",aspect_ratio=:equal,xlims=(-2,2),ylims=(-2,2),label="instanton",
-                title="Instanton in the phase space")
-        display(Q)
-    end
-
-    return sol
-    # regularize if necessary
-
-    #diffs = maximum(abs.(diff(sol,dims=2)), dims=1)[1,:]
-    #first_singularity = findlast(>(1),diffs[1:1:N_steps_backward])
-    #last_singularity = findfirst(>(1),diffs[N_steps_backward+1:1:end])
-    #first_singularity = (first_singularity==nothing) ? 1 : first_singularity
-    #last_singularity = (last_singularity==nothing) ? N_steps_forward+N_steps_backward : last_singularity
-    #sol_reg = sol[:,first_singularity+3:1:last_singularity-3]
-    ##action(w0, sol_reg, dt)
-end
-"""

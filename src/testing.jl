@@ -7,7 +7,7 @@
     return a + (b-a) * rand()
 end
 
-@inline function random_latice(lattice_geometry::DataType)
+@inline function random_lattice(lattice_geometry::DataType)
     nx,ny = rand(7:15, 2)
     return lattice_geometry(nx,ny)::LatticeType
 end
@@ -30,10 +30,10 @@ end
 
 @inline supported_lattice_types = (SquareLattice, TriangularLattice)
 @inline testing_boundary = (FreeBoundary(), PeriodicBoundary())
-@inline testing_lattice = [random_latice(type) for type in supported_lattice_types]
+@inline testing_lattice = [random_lattice(type) for type in supported_lattice_types]
 
 function raise_error(err,system)
-    println("\nERROR -------------------------------------> \n ------------> occured for \n")
+    println("\nERROR -------------------------------------> \n ------------> occurred for \n")
     describe_system(system)
     println("err = ", abs(err), "\n")
 end

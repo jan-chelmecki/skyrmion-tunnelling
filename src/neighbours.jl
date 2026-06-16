@@ -11,7 +11,7 @@ end
 """
 WARNING
 This causes a type instability I cannot fix... (hence I opted for unaesthetic branch statements in the hot loops)
-@inline function foreach_neighbor(f, ::SquareLattice, J1, J2, J3)
+@inline function foreach_neighbour(f, ::SquareLattice, J1, J2, J3)
     f( 1,  0, J1)
     f( 0,  1, J1)
     f( 1,  1, J2)
@@ -20,7 +20,7 @@ This causes a type instability I cannot fix... (hence I opted for unaesthetic br
     f( 0,  2, J3)
 end
 
-@inline function foreach_neighbor(f, ::TriangularLattice, J1, J2, J3)
+@inline function foreach_neighbour(f, ::TriangularLattice, J1, J2, J3)
     f(0,1,J1)
     f(1,0,J1)
     f(1,-1,J1)

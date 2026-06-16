@@ -15,12 +15,12 @@ struct System{P<:HamiltonianParameters,
 end
 
 function display_parameters(params::HamiltonianParameters)
-    println("Hamiltonian parameters:\nJ1 = ", round(params.J1, digits=3), "\tJ2 = ", round(params.J2, digits=3), "\tJ3 = ", round(params.J3, digits=3),
+    println("Hamiltonian parameters:\nJ1 = ", round(params.J1, digits=3), ";\tJ2 = ", round(params.J2, digits=3), ";\tJ3 = ", round(params.J3, digits=3),
     "\nK = ", round(params.K,digits=3))
 
     Bz_avg = sum(params.B[3,:,:])/(params.B.size[2]*params.B.size[3])
     uniform = ( maximum(abs.(Bz_avg .- params.B[3,:,:])) < 1e-12 )
-    println("Bz_avg = ", round(Bz_avg,digits=3), "\tB_uniform = ", uniform,"\n")
+    println("Bz_avg = ", round(Bz_avg,digits=3), ";\tB_uniform = ", uniform,"\n")
 end
 
 function describe_system(sys::System)
