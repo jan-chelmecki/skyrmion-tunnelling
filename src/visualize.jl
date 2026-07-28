@@ -8,6 +8,13 @@ function show_nz(n,lattice::LatticeType)
     display(P)
 end
 
+function show_nz_heatmap(n, lattice::SquareLattice)
+    x = 0:1:lattice.nx
+    P = heatmap(x, x, n[3,:,:], colormap=:balance, aspect_ratio=:equal, clims=(-1,1), xlabel=L"x",ylabel=L"y", colorbar_title=L"n_z", xlims=(minimum(x), maximum(x)),
+        ylims=(minimum(x), maximum(x)))
+    display(P)
+end
+
 function show_topological_charge(n,lattice::LatticeType)
     X,Y = XY_meshgrid(lattice)
     Q, Q_density = topological_charge(n,lattice)
@@ -130,7 +137,7 @@ function show_double_well_in_complex_plane(system::System, coord::CollectiveCoor
     display(P)
 end
 
-function show_energy_contours(system::System, coord::CollectiveCoordinate; xmin, xmax, N_points = 15, levels=25)
+function show_energy_contours!(P, system::System, coord::CollectiveCoordinate; xmin, xmax, N_points = 15, levels=25, colour=:coolwarm, colorbar=true)
     N = N_points
     X = LinRange(xmin, xmax, N)
     H_vals = zeros(ComplexF64,N,N)
@@ -143,13 +150,19 @@ function show_energy_contours(system::System, coord::CollectiveCoordinate; xmin,
     x,xbar = coordinate_label(coord)
 
     xlims = (xmin, xmax)
-    P = contour(X,X,real.(H_vals),aspect_ratio=:equal,xlims=xlims,ylims=xlims, colour=:coolwarm,
-            xlabel=x,ylabel=xbar,title="Energy landscape for Euclidean Dynamics", levels=levels)
+    contour!(P, X,X,real.(H_vals),aspect_ratio=:equal,xlims=xlims,ylims=xlims, colour=colour,
+            xlabel=x,ylabel=xbar,title="Energy landscape for Euclidean Dynamics", levels=levels, colorbar=colorbar)
+end
+
+function show_energy_contours(system::System, coord::CollectiveCoordinate; xmin, xmax, N_points = 15, levels=25)
+    P = plot()
+    show_energy_contours!(P, system, coord, xmin=xmin, xmax=xmax, N_points=N_points, levels=levels)
     display(P)
 end
 
 
-function show_velocity_field(system::System, coord::CollectiveCoordinate; xmin, xmax, N_points = 15, scale = 3)
+function show_velocity_field!(P, system::System, coord::CollectiveCoordinate; xmin, xmax, N_points = 15, scale = 3, normalise=false, colour=:gray,
+    title = "Euclidean dynamics velocity field")
     
     x = LinRange(xmin, xmax, N_points)
 
@@ -164,13 +177,101 @@ function show_velocity_field(system::System, coord::CollectiveCoordinate; xmin, 
 
     check_if_imaginary(V)
 
+    if normalise
+        for j=1:N_points, i=1:N_points
+            v_norm_inv = inv(sqrt(real(V[1,i,j])^2 + real(V[2,i,j])^2))
+            V[1,i,j] *= v_norm_inv
+            V[2,i,j] *= v_norm_inv
+        end
+    end
+
     x,xbar = coordinate_label(coord)
 
     xlims = (xmin-0.1, xmax+0.1)
-    P = quiver(X,Y,quiver=(real.(V[1,:,:]/scale),real.(V[2,:,:]/scale)),aspect_ratio=:equal, colour = "gray", xlims=xlims, ylims=xlims,
-        xlabel = x, ylabel=xbar, title="Euclidean dynamics velocity field")
+    quiver!(P, X,Y,quiver=(real.(V[1,:,:]/scale),real.(V[2,:,:]/scale)),aspect_ratio=:equal, colour = colour, xlims=xlims, ylims=xlims,
+        xlabel = x, ylabel=xbar, title=title)
+end
+
+function show_velocity_field(system::System, coord::CollectiveCoordinate; xmin, xmax, N_points = 15, scale = 3)
+    P = plot()
+    show_velocity_field!(P, system, coord, xmin=xmin, xmax=xmax, N_points=N_points, scale=scale)
     display(P)
 end
+
+function direction_vector(angle)
+    return (cos(pi*angle/180), sin(pi*angle/180))
+end
+
+function plot_sol!(P, sol; system, coord, xmin, xmax, colour=:orange)
+    plot!(P, real.(sol[1,:]), real.(sol[2,:]), xlims=(xmin,xmax), ylims=(xmin,xmax), colour=colour, label=false, linewidth=2.0)
+    N = div(sol.size[2],5)
+    x = real.(sol[1,N:N:end])
+    y = real.(sol[1,N:N:end])
+    
+    add_arrows_to_sol_plot!(P; sol=sol, directions=direction_vector.([15,75,135,195,255,315]), colour=colour, xmin=xmin, xmax=xmax, system=system, coord=coord)
+end
+
+function add_arrows_to_sol_plot!(P; sol, directions, colour=:orange, xmin, xmax, system,coord)
+    ind = []
+    # find intersections with pre-specified lines ----> for aesthetics
+    for d in directions
+        scalar_product = (d[1]*sol[1,:]+d[2]*sol[2,:]) ./ (sqrt.(abs2.(sol[1,:]) +abs2.(sol[2,:]) ) )
+        i = argmax(real.( scalar_product ) )
+        if abs2(d[1]*sol[1,i]-d[2]*sol[2,i]) < 0.01
+            push!(ind,i)
+        end
+    end #next d
+
+    x = real.(sol[1,ind])
+    y = real.(sol[2,ind])
+    V = zeros(2, length(x))
+    for i=1:length(x)
+        V[:,i] = real.( v(x[i],y[i],system,coord) )
+        norm_V_inv = inv(sqrt(V[1,i]^2 + V[2,i]^2))
+        V[1,i] *= norm_V_inv; V[2,i] *= norm_V_inv
+    end
+    scale = 50.0
+    quiver!(P, x,y, quiver=(V[1,:]/scale, V[2,:]/scale), colour=colour, xlims=(xmin,xmax), ylims=(xmin,xmax))
+end
+
+function show_phase_portrait(system, coord; xmin, xmax, levels=5)
+    P = plot()
+    show_energy_contours!(P, system,coord, xmin=xmin, xmax=xmax, N_points=100, colorbar=false, colour=:lightblue, levels=5)
+    show_velocity_field!(P, system, coord, xmin=xmin, xmax=xmax, N_points=14, normalise=true, scale=50.0, colour=:lightblue, title="")
+    S_inst, sol1 = instanton(system,coord, x_init = 1.0, direction_guess=[0.00, -0.10], T_backward=50.0, T_forward=100.0, dt=0.1, show=false)
+    #S_inst, sol2 = instanton(system,coord, x_init = 1.0, direction_guess=[0.10, 0.00], T_backward=25.0, T_forward=50.0, dt=0.1, show=false)
+    #S_inst, sol3 = instanton(system,coord, x_init = 1.0, direction_guess=[0.00, 0.10], T_backward=50.0, T_forward=25.0, dt=0.1, show=false)
+    
+    #sol_list = [sol1,sol2,sol3]
+    sol_list = [sol1]
+    colour_list = [:orange,:red,:red]
+    for i=1:length(sol_list)
+        sol = sol_list[i]
+        plot_sol!(P, sol; system=system, coord=coord, xmin=xmin,xmax=xmax, colour=colour_list[i])
+        # reflect the solution about the x=y axis ----> saves time on integration
+        sol_ref = similar(sol)
+        sol_ref[1,:] .= sol[2,:]; sol_ref[2,:] .= sol[1,:]
+        plot_sol!(P, sol_ref; system=system, coord=coord, xmin=xmin,xmax=xmax, colour=colour_list[i])
+    end
+    return P
+end
+
+"""
+P = plot()
+xmax = 1.3
+N_points = 16
+x_vals = LinRange(-xmax, xmax, N_points+2)
+for i=2:N_points+1
+    u = [x_vals[i], -x_vals[i]]
+    sol = solve_ivp(u,system, coord, dt=0.05, T=15)
+    plot!(P, real.(sol[1,:]), real.(sol[2,:]), aspect_ratio=:equal, xlims=(-xmax,xmax), ylims=(-xmax,xmax), label=false, colour=:blue)
+
+    sol = solve_ivp(sol[:,2],system, coord, dt=-0.05, T=15)
+    plot!(P, real.(sol[1,:]), real.(sol[2,:]), aspect_ratio=:equal, xlims=(-xmax,xmax), ylims=(-xmax,xmax), label=false, colour=:blue)
+end
+display(P)
+
+"""
 
 function describe_collective_coordinate(system::System, coord::CollectiveCoordinate; xmin=-1.3, xmax=1.3, N_points = 15, levels=25)
     show_double_well(system,coord, xmin=xmin, xmax=xmax)

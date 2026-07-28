@@ -80,7 +80,7 @@ end
 
 function multi_scale_sample(;length_scale, k, b, n_sites, annealing_rate=0.998)
 
-    l_acceptable_min = 1.5 # below this point, skyrmions would be too small to be stable
+    l_acceptable_min = 1.0 # below this point, skyrmions would be too small to be stable
     l_acceptable_max = 2*l_acceptable_min # on the flip side, the bigger the length scale, the lower the efficiency
 
     size_list = Int[]
@@ -107,6 +107,7 @@ function multi_scale_sample(;length_scale, k, b, n_sites, annealing_rate=0.998)
     show_nz(n, system.lattice)
     println("\n\n\n")
     
+    relax!(n, system, N_steps=2000, graph=false)
     
     for ind=1:length(size_list)
         l *= 2
@@ -117,7 +118,7 @@ function multi_scale_sample(;length_scale, k, b, n_sites, annealing_rate=0.998)
         describe_system(system)
         perturb!(n, amp = 0.3)
         show_nz(n, system.lattice)
-        relax!(n, system, N_steps=500, graph=true)
+        relax!(n, system, N_steps=1000, graph=true)
         show_nz(n, system.lattice)
     end
     return n
