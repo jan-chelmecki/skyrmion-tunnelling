@@ -52,4 +52,6 @@ export microscopic_system, continuum_couplings, microscopic_from_continuum_non_d
 sample_skyrmion
 export azimuthal_angle, show_profiles, show_nz_heatmap
 export symmetrise!
+export v!
+export compute_wz_fields!
 end
