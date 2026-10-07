@@ -12,7 +12,8 @@ function show_nz_heatmap(n, lattice::SquareLattice)
     x = 0:1:lattice.nx
     P = heatmap(x, x, n[3,:,:], colormap=:balance, aspect_ratio=:equal, clims=(-1,1), xlabel=L"x",ylabel=L"y", colorbar_title=L"n_z", xlims=(minimum(x), maximum(x)),
         ylims=(minimum(x), maximum(x)))
-    display(P)
+    #display(P)
+    return P
 end
 
 function show_topological_charge(n,lattice::LatticeType)
@@ -40,7 +41,7 @@ function in_plane_quiver(n,lattice::LatticeType; xlims=(-5,5))
     c = vec(n[3,:,:])
     c = [c c]'
     Q = quiver(x,y,quiver=(dx,dy),line_z=repeat([c...], inner=2), c=:coolwarm, clims=(-1,1), xlims=xlims, ylims=xlims, aspect_ratio=:equal,
-            arrow=Plots.arrow(:closed, :head, 0.01, 0.01), xlabel=L"x", ylabel=L"y")
+            arrow=Plots.arrow(:closed, :head, 0.01, 0.01), xlabel=L"x", ylabel=L"y", guidefontsize=20)
     display(Q)
 end
 
@@ -113,7 +114,7 @@ function show_double_well(system::System, coord::CollectiveCoordinate; xmin, xma
     X = LinRange(xmin,xmax, 100)
     H_vals = [real(H(x,x,system,coord)) for x in X]
     x, xbar = coordinate_label(coord)
-    P = plot(X,H_vals, xlabel=x,ylabel="energy", title="Energy of n("*x*")", label=false)
+    P = plot(X,H_vals, xlabel=x,ylabel=L"E-E_{\text{FM}}", label=false, guidefontsize=20)
     display(P)
 end
 
@@ -151,12 +152,12 @@ function show_energy_contours!(P, system::System, coord::CollectiveCoordinate; x
 
     xlims = (xmin, xmax)
     contour!(P, X,X,real.(H_vals),aspect_ratio=:equal,xlims=xlims,ylims=xlims, colour=colour,
-            xlabel=x,ylabel=xbar,title="Energy landscape for Euclidean Dynamics", levels=levels, colorbar=colorbar)
+            xlabel=x,ylabel=xbar,title="Energy landscape for Euclidean Dynamics", levels=levels, colorbar=colorbar, guidefontsize=20)
 end
 
 function show_energy_contours(system::System, coord::CollectiveCoordinate; xmin, xmax, N_points = 15, levels=25)
     P = plot()
-    show_energy_contours!(P, system, coord, xmin=xmin, xmax=xmax, N_points=N_points, levels=levels)
+    show_energy_contours!(P, system, coord, xmin=xmin, xmax=xmax, N_points=N_points, levels=levels, guidefontsize=20)
     display(P)
 end
 
@@ -189,7 +190,7 @@ function show_velocity_field!(P, system::System, coord::CollectiveCoordinate; xm
 
     xlims = (xmin-0.1, xmax+0.1)
     quiver!(P, X,Y,quiver=(real.(V[1,:,:]/scale),real.(V[2,:,:]/scale)),aspect_ratio=:equal, colour = colour, xlims=xlims, ylims=xlims,
-        xlabel = x, ylabel=xbar, title=title)
+        xlabel = x, ylabel=xbar, title=title, guidefontsize=20)
 end
 
 function show_velocity_field(system::System, coord::CollectiveCoordinate; xmin, xmax, N_points = 15, scale = 3)
@@ -234,16 +235,17 @@ function add_arrows_to_sol_plot!(P; sol, directions, colour=:orange, xmin, xmax,
     quiver!(P, x,y, quiver=(V[1,:]/scale, V[2,:]/scale), colour=colour, xlims=(xmin,xmax), ylims=(xmin,xmax))
 end
 
-function show_phase_portrait(system, coord; xmin, xmax, levels=5)
+function show_phase_portrait(system, coord; xmin, xmax, levels=5, sol_list=[])
     P = plot()
     show_energy_contours!(P, system,coord, xmin=xmin, xmax=xmax, N_points=100, colorbar=false, colour=:lightblue, levels=5)
     show_velocity_field!(P, system, coord, xmin=xmin, xmax=xmax, N_points=14, normalise=true, scale=50.0, colour=:lightblue, title="")
-    S_inst, sol1 = instanton(system,coord, x_init = 1.0, direction_guess=[0.00, -0.10], T_backward=50.0, T_forward=100.0, dt=0.1, show=false)
-    #S_inst, sol2 = instanton(system,coord, x_init = 1.0, direction_guess=[0.10, 0.00], T_backward=25.0, T_forward=50.0, dt=0.1, show=false)
-    #S_inst, sol3 = instanton(system,coord, x_init = 1.0, direction_guess=[0.00, 0.10], T_backward=50.0, T_forward=25.0, dt=0.1, show=false)
-    
-    #sol_list = [sol1,sol2,sol3]
-    sol_list = [sol1]
+    if length(sol_list) == 0
+        S_inst, sol1 = instanton(system,coord, x_init = 1.0, direction_guess=[0.00, -0.10], T_backward=50.0, T_forward=100.0, dt=0.1, show=false)
+        #S_inst, sol2 = instanton(system,coord, x_init = 1.0, direction_guess=[0.10, 0.00], T_backward=25.0, T_forward=50.0, dt=0.1, show=false)
+        #S_inst, sol3 = instanton(system,coord, x_init = 1.0, direction_guess=[0.00, 0.10], T_backward=50.0, T_forward=25.0, dt=0.1, show=false)
+        #sol_list = [sol1,sol2,sol3]
+        sol_list = [sol1]
+    end
     colour_list = [:orange,:red,:red]
     for i=1:length(sol_list)
         sol = sol_list[i]
@@ -253,6 +255,7 @@ function show_phase_portrait(system, coord; xmin, xmax, levels=5)
         sol_ref[1,:] .= sol[2,:]; sol_ref[2,:] .= sol[1,:]
         plot_sol!(P, sol_ref; system=system, coord=coord, xmin=xmin,xmax=xmax, colour=colour_list[i])
     end
+    title!(P,"")
     return P
 end
 
